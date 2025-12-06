@@ -117,8 +117,7 @@ export class TestWatcherManager implements vscode.Disposable {
             const settingsFiles: string | string[] | undefined = ExtensionConfigurations.testSettingsFiles;
             const directoriesToWatch: string[] = [];
 
-            // Only check for directories if the config is a string (not an array)
-            // Arrays can only contain individual files, not directories
+            // Check for directories in both string and array configurations
             if (typeof settingsFiles === "string") {
                 try {
                     const pathType = await getPathType(settingsFiles);
@@ -133,6 +132,24 @@ export class TestWatcherManager implements vscode.Disposable {
                     );
                     this.outputChannel.appendDebugLine(errorMessage);
                     vscode.window.showWarningMessage(errorMessage);
+                }
+            } else if (Array.isArray(settingsFiles)) {
+                // Check each array element for directories
+                for (const settingsFile of settingsFiles) {
+                    try {
+                        const pathType = await getPathType(settingsFile);
+                        if (pathType === 'directory') {
+                            directoriesToWatch.push(settingsFile);
+                        }
+                    } catch (error) {
+                        // Path doesn't exist or is inaccessible, show a warning and skip it
+                        const errorMessage = resolveI18nTemplate(
+                            "PQSdk.testAdapter.error.invalidSettingsPathNotWatched",
+                            { settingsPath: settingsFile }
+                        );
+                        this.outputChannel.appendDebugLine(errorMessage);
+                        vscode.window.showWarningMessage(errorMessage);
+                    }
                 }
             }
 

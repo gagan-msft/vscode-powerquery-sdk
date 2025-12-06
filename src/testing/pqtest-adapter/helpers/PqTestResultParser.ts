@@ -102,7 +102,7 @@ export class PqTestResultParser {
             }
 
             // Log the line
-            this.outputChannel.appendLine(line.trim());
+            this.outputChannel.appendDebugLine(line.trim());
 
             // Skip empty lines
             if (line.trim().length === 0) {

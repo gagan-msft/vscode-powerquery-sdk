@@ -80,12 +80,13 @@ export async function getTestSettingsFileUris(outputChannel?: PqSdkOutputChannel
                 const fileStat: vscode.FileStat = await vscode.workspace.fs.stat(vscode.Uri.file(settingsFile));
 
                 if (fileStat.type === vscode.FileType.Directory) {
-                    void vscode.window.showErrorMessage(
-                        resolveI18nTemplate("PQSdk.testAdapter.error.directoryNotSupportedInArray", {
-                            settingsFile,
-                            configPath: `${baseConfigPath}.${settingsFilesConfigKey}`,
-                        }),
+                    // Directory support: scan for all .testsettings.json files recursively
+                    const pattern: vscode.RelativePattern = new vscode.RelativePattern(
+                        settingsFile,
+                        testSettingsFilePattern,
                     );
+                    const files: vscode.Uri[] = await vscode.workspace.findFiles(pattern);
+                    result.push(...files);
                 } else if (settingsFile.endsWith(testSettingsFileEnding)) {
                     result.push(vscode.Uri.file(settingsFile));
                 } else {
