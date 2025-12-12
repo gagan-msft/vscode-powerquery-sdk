@@ -1,6 +1,6 @@
 /**
- * Test controller management for the Power Query SDK Test extension.
- * Handles VS Code Test Explorer integration, test running, and command registration.
+ * Test controller management for the PQTest VSCode UI integration.
+ * Handles VS Code Test Explorer integration, test runs, and custom commands' registration and logic.
  */
 
 import * as vscode from "vscode";
@@ -255,6 +255,7 @@ export async function refreshSettingsItem(
     skipReveal: boolean = false
 ): Promise<void> {
     if (!testItem || !testItem.uri) {
+        //Todo: log
         return;
     }
 
@@ -268,6 +269,7 @@ export async function refreshSettingsItem(
     try {
         // Clear existing children and any previous error state
         testItem.children.replace([]);
+        //Todo: verify if this is needed, as we clear errors in resolveTestItem
         testItem.error = undefined;
 
         // Trigger test discovery via resolveTestItem
@@ -343,14 +345,46 @@ export async function refreshAllTests(
         const items: vscode.TestItem[] = [];
         controller.items.forEach(item => items.push(item));
 
+        // Sort items alphabetically by label for consistent, predictable expansion order
+        items.sort((a, b) => a.label.localeCompare(b.label));
+
         for (const item of items) {
             // Use delay for single-child items to give UI time to register recreated items
             await expandTestSettingsItem(item, controller, DELAY_BEFORE_SINGLE_CHILD_REVEAL_MS);
         }
 
-        const successMessage = extensionI18n["PQSdk.testAdapter.testDiscoveryCompleted"];
-        outputChannel.appendInfoLine(successMessage);
-        vscode.window.showInformationMessage(successMessage);
+        // Check for errors across all test items
+        const itemsWithErrors: vscode.TestItem[] = [];
+        controller.items.forEach(item => {
+            if (item.error) {
+                itemsWithErrors.push(item);
+            }
+        });
+
+        const totalCount = controller.items.size;
+        const failedCount = itemsWithErrors.length;
+
+        if (failedCount === 0) {
+            // All discoveries succeeded
+            const successMessage = extensionI18n["PQSdk.testAdapter.testDiscoveryCompleted"];
+            outputChannel.appendInfoLine(successMessage);
+            vscode.window.showInformationMessage(successMessage);
+        } else {
+            // Some discoveries failed
+            const logMessage = resolveI18nTemplate(
+                "PQSdk.testAdapter.testDiscoveryCompletedWithErrors",
+                { failedCount: failedCount.toString(), totalCount: totalCount.toString() }
+            );
+            outputChannel.appendInfoLine(logMessage);
+
+            // Log details of each failed item
+            itemsWithErrors.forEach(item => {
+                outputChannel.appendDebugLine(`  - ${item.label}: ${item.error}`);
+            });
+
+            const userMessage = extensionI18n["PQSdk.testAdapter.testDiscoveryCompletedWithErrorsUserMessage"];
+            vscode.window.showWarningMessage(userMessage);
+        }
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         const logMessage = resolveI18nTemplate(
