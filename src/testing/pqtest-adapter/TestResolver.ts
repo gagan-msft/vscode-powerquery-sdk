@@ -39,8 +39,8 @@ function sortTestsForHierarchy(tests: any[]): any[] {
 }
 
 /**
- * Resolves the children of a test item (settings file) by discovering and loading the individual test files.
- * This function is called when a user expands a settings file in the Test Explorer.
+ * Resolves a test item (settings file) by discovering and creating children test items.
+ * This function is called when a user expands a settings file in the Test Explorer or programmatically.
  * 
  * @param item - The test item representing a .testsettings.json file
  * @param controller - The VS Code test controller
@@ -111,7 +111,7 @@ export async function resolveTestItem(
             // Handle single test file case
             const normalizedTestPath = getNormalizedPath(testPath);
             const testFileUri = vscode.Uri.file(normalizedTestPath);
-            const testFileName = path.basename(testPath); // Keep file name for the label
+            const testFileName = path.basename(testPath); // Keep pre-normalised file name for the label
             const normalizedTestFileName = path.basename(normalizedTestPath); // Use normalized for the ID
 
             // Create composite ID for test files: testId|settingsFilePath
@@ -128,7 +128,7 @@ export async function resolveTestItem(
                 item // parentItem
             );
 
-            outputChannel.appendLine(
+            outputChannel.appendInfoLine(
                 resolveI18nTemplate("PQSdk.testResolver.addedSingleTestFile", {
                     testFileName,
                 })
@@ -139,7 +139,7 @@ export async function resolveTestItem(
             const pqTestResult = await discoveryService.discoverTests(settingsFileUri, token);
 
             // Log the full result for debugging
-            outputChannel.appendLine(
+            outputChannel.appendDebugLine(
                 resolveI18nTemplate("PQSdk.testResolver.pqtestResultStructure", {
                     resultJson: JSON.stringify(pqTestResult, null, 2),
                 })
@@ -147,7 +147,7 @@ export async function resolveTestItem(
 
             // Extract the Tests array from the result
             const tests = pqTestResult.Tests || [];
-            outputChannel.appendLine(
+            outputChannel.appendDebugLine(
                 resolveI18nTemplate("PQSdk.testResolver.foundTestFiles", {
                     testCount: tests.length.toString(),
                 })
@@ -219,7 +219,7 @@ export async function resolveTestItem(
                                     // Store in map for hierarchy building
                                     folderMap.set(folderPath, folderItem);
 
-                                    outputChannel.appendLine(
+                                    outputChannel.appendDebugLine(
                                         resolveI18nTemplate("PQSdk.testResolver.creatingFolderItem", {
                                             folderName,
                                             folderId: folderItem.id,
@@ -227,7 +227,7 @@ export async function resolveTestItem(
                                         })
                                     );
                                 } catch (folderError) {
-                                    outputChannel.appendLine(
+                                    outputChannel.appendErrorLine(
                                         resolveI18nTemplate("PQSdk.testResolver.failedToCreateFolderItem", {
                                             folderPath,
                                             errorMessage:
@@ -239,7 +239,7 @@ export async function resolveTestItem(
                                     // Continue with parent item if folder creation fails
                                 }
                             } else {
-                                outputChannel.appendLine(
+                                outputChannel.appendDebugLine(
                                     resolveI18nTemplate("PQSdk.testResolver.reusedExistingFolder", {
                                         folderPath,
                                     })
@@ -261,7 +261,7 @@ export async function resolveTestItem(
                     // Create composite ID for test files: originalTestId|settingsFilePath
                     const compositeTestId = uri ? createCompositeId(testId, settingsFileUri) : testId;
 
-                    outputChannel.appendLine(
+                    outputChannel.appendDebugLine(
                         resolveI18nTemplate("PQSdk.testResolver.creatingTestItem", {
                             compositeTestId,
                             label,
@@ -279,7 +279,7 @@ export async function resolveTestItem(
                         parentItem // parentItem
                     );
                 } catch (error) {
-                    outputChannel.appendLine(
+                    outputChannel.appendErrorLine(
                         resolveI18nTemplate("PQSdk.testResolver.failedToCreateTestItem", {
                             testName: test.Test,
                             errorMessage: error instanceof Error ? error.message : String(error),
@@ -288,7 +288,7 @@ export async function resolveTestItem(
                 }
             }
 
-            outputChannel.appendLine(
+            outputChannel.appendInfoLine(
                 resolveI18nTemplate("PQSdk.testResolver.successfullyCreatedTestItems", {
                     testCount: tests.length.toString(),
                 })
@@ -298,7 +298,7 @@ export async function resolveTestItem(
         item.error = resolveI18nTemplate("PQSdk.testResolver.failedToDiscoverTests", {
             errorMessage: err.message,
         });
-        outputChannel.appendLine(
+        outputChannel.appendErrorLine(
             resolveI18nTemplate("PQSdk.testResolver.testDiscoveryFailed", {
                 errorMessage: err.message,
             })

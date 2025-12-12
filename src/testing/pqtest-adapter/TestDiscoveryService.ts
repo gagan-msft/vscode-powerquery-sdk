@@ -7,8 +7,8 @@
 
 import * as vscode from "vscode";
 
-import { ExtensionConfigurations } from "../../constants/PowerQuerySdkConfiguration";
 import { extensionI18n, resolveI18nTemplate } from "../../i18n/extension";
+import { resolvePqTestExecutablePath } from "../../utils/pqTestPath";
 import { PqSdkOutputChannel } from "../../features/PqSdkOutputChannel";
 import { getTestPathFromSettings, determineExtensionsForTests } from "./utils/testSettingsUtils";
 import { getPathType } from "../../utils/files";
@@ -72,26 +72,21 @@ export class TestDiscoveryService {
             throw new Error(error);
         }
 
-        this.outputChannel?.appendLine(
+        this.outputChannel?.appendDebugLine(
             resolveI18nTemplate("PQSdk.testDiscoveryService.startingTestDiscoveryForPath", {
                 pathType,
                 testPath,
             })
         );
 
-        this.outputChannel?.appendLine(
+        this.outputChannel?.appendDebugLine(
             resolveI18nTemplate("PQSdk.testDiscoveryService.usingSettingsFile", {
                 settingsFilePath: settingsFileUri.fsPath,
             })
         );
 
         // Get PQTest executable path
-        const pqTestPath = ExtensionConfigurations.pqTestExecutablePath;
-        if (!pqTestPath) {
-            const error = extensionI18n["PQSdk.testDiscoveryService.defaultExtensionNotConfigured"];
-            this.outputChannel?.appendLine(error);
-            throw new Error(error);
-        }
+        const pqTestPath = resolvePqTestExecutablePath();
 
         // Execute discovery using PqTestDiscoveryRunner
         const discoveryRunner = new PqTestDiscoveryRunner(
@@ -102,7 +97,7 @@ export class TestDiscoveryService {
         );
 
         try {
-            this.outputChannel?.appendLine(extensionI18n["PQSdk.testDiscoveryService.executingPqTestWithListOnly"]);
+            this.outputChannel?.appendDebugLine(extensionI18n["PQSdk.testDiscoveryService.executingPqTestWithListOnly"]);
 
             const result = await discoveryRunner.runDiscovery();
 
@@ -110,7 +105,7 @@ export class TestDiscoveryService {
                 throw new Error(extensionI18n["PQSdk.testDiscoveryService.pqtestReturnedNoResults"]);
             }
 
-            this.outputChannel?.appendLine(extensionI18n["PQSdk.testDiscoveryService.successfullyDiscoveredTests"]);
+            this.outputChannel?.appendInfoLine(extensionI18n["PQSdk.testDiscoveryService.successfullyDiscoveredTests"]);
             return result;
         } catch (err: any) {
             const error = resolveI18nTemplate("PQSdk.testDiscoveryService.failedToDiscoverTests", {

@@ -65,19 +65,19 @@ export class TestRunExecutor {
 
         this.state = ExecutionState.Running;
 
-        this.outputChannel.appendLine(
+        this.outputChannel.appendDebugLine(
             resolveI18nTemplate("PQSdk.testAdapter.executor.startingTestExecution", {
                 testCount: this.testItems.length.toString(),
             })
         );
-        this.outputChannel.appendLine(
+        this.outputChannel.appendDebugLine(
             resolveI18nTemplate("PQSdk.testAdapter.executor.settingsFile", {
                 settingsFilePath: this.settingsFile.fsPath,
             })
         );
 
         const workingDirectory = path.dirname(this.settingsFile.fsPath);
-        this.outputChannel.appendLine(
+        this.outputChannel.appendDebugLine(
             resolveI18nTemplate("PQSdk.testAdapter.executor.workingDirectory", {
                 workingDirectory,
             })
@@ -105,7 +105,7 @@ export class TestRunExecutor {
             const args = commandBuilder.buildArgs(additionalArgs || []);
 
             // Step 4: Execute the process using SpawnedProcessStreaming
-            this.outputChannel.appendLine(
+            this.outputChannel.appendInfoLine(
                 resolveI18nTemplate("PQSdk.testAdapter.executor.executingCommand", {
                     exePath: this.pqTestPath,
                     args: args.join(" "),
@@ -131,7 +131,7 @@ export class TestRunExecutor {
 
                 // Handle cancellation
                 if (event.type === PqTestResultEventType.Cancelled) {
-                    this.outputChannel.appendLine(extensionI18n["PQSdk.testAdapter.executor.testRunCancelledByUser"]);
+                    this.outputChannel.appendInfoLine(extensionI18n["PQSdk.testAdapter.executor.testRunCancelledByUser"]);
                     this.state = ExecutionState.Cancelled;
                     break;
                 }
@@ -149,12 +149,12 @@ export class TestRunExecutor {
                         } else {
                             // Log the unexpected test and continue with other tests
                             unexpectedTestCount++;
-                            this.outputChannel.appendLine(
+                            this.outputChannel.appendInfoLine(
                                 resolveI18nTemplate("PQSdk.testAdapter.executor.unexpectedTest", {
                                     filePath,
                                 })
                             );
-                            this.outputChannel.appendLine(`Settings file: ${this.settingsFile.fsPath}`);
+                            this.outputChannel.appendDebugLine(`Settings file: ${this.settingsFile.fsPath}`);
                         }
                     });
 
@@ -201,7 +201,7 @@ export class TestRunExecutor {
                 }
             }
 
-            this.outputChannel.appendLine(
+            this.outputChannel.appendInfoLine(
                 extensionI18n["PQSdk.testAdapter.executor.testExecutionCompletedSuccessfully"]
             );
         } catch (error) {

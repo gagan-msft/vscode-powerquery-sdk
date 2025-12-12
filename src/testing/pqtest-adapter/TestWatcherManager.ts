@@ -1,6 +1,6 @@
 /**
- * Manages file system watchers and test discovery for the Power Query Test extension.
- * Handles automatic synchronization of test items when files change or configuration updates.
+ * Manages file system watchers and initial test discovery for the Power Query Test extension.
+ * Handles automatic synchronization of test items when settings files change or configuration updates.
  */
 
 import * as vscode from "vscode";
@@ -41,7 +41,7 @@ export class TestWatcherManager implements vscode.Disposable {
 
     /**
      * Performs a full reset: clears all tests, disposes watchers, 
-     * re-runs discovery, and sets up new watchers.
+     * re-runs top level discovery, and sets up new watchers.
      */
     private async reset(): Promise<void> {
         this.outputChannel.appendInfoLine(extensionI18n["PQSdk.testAdapter.performingFullReset"]);
@@ -80,7 +80,7 @@ export class TestWatcherManager implements vscode.Disposable {
     }
 
     /**
-     * Sets up a configuration watcher to detect changes to powerquery.test.settingsFiles
+     * Sets up a configuration watcher to detect changes to powerquery.sdk.test.settingsFiles
      */
     private setupConfigurationWatcher(): void {
         const configWatcher = vscode.workspace.onDidChangeConfiguration(

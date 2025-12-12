@@ -49,7 +49,7 @@ export class PqTestDiscoveryRunner {
             "PQSdk.testDiscoveryRunner.executingDiscovery",
             { command: commandLine }
         );
-        this.outputChannel?.appendLine(message);
+        this.outputChannel?.appendInfoLine(message);
         
         // Execute using non-streaming SpawnedProcess
         const spawnProcess = new SpawnedProcess(

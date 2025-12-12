@@ -7,7 +7,6 @@
 
 /**
  * Utility functions for resolving PQTest.exe executable path.
- * Provides consistent PQTest executable path resolution across the extension.
  */
 
 import * as fs from "fs";

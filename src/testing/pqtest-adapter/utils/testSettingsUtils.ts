@@ -119,7 +119,7 @@ export async function getTestSettingsFileUris(outputChannel?: PqSdkOutputChannel
 
 /**
  * Reads the test path from a settings file and validates that it is either a directory or a .query.pq file.
- * The path is resolved relative to the workspace root if it's not an absolute path.
+ * The path is resolved relative to the test settings file if it's not an absolute path.
  *
  * @param settingsFilePath Absolute path to the test settings file
  * @param fs File system operations (defaults to VS Code's workspace.fs)
@@ -175,7 +175,6 @@ export async function getTestPathFromSettings(
     } else {
         // Resolve relative paths relative to the settings file directory
         const settingsFileDir: string = path.dirname(settingsFilePath);
-
         resolvedQueryFilePath = path.resolve(settingsFileDir, queryFilePathFromSettings);
     }
 
@@ -297,7 +296,7 @@ export async function determineExtensionsForTests(
             },
         );
 
-        outputChannel?.appendLine(message);
+        outputChannel?.appendErrorLine(message);
     }
 
     // Priority 2: Check powerquery.sdk.test.extensionPaths
@@ -308,17 +307,12 @@ export async function determineExtensionsForTests(
         if (typeof testExtensionPaths === 'string') {
             const trimmed = testExtensionPaths.trim();
             if (trimmed.length > 0) {
-                // Substitute variables and resolve path relative to workspace folder
-                const resolved = resolvePathRelativeToWorkspace(resolveSubstitutedValues(trimmed));
-                
-                if (resolved) {
-                    const message = resolveI18nTemplate(
-                        "PQSdk.testAdapter.extensions.usingTestExtensionPathsConfig",
-                        { extensionCount: "1" }
-                    );
-                    outputChannel?.appendInfoLine(message);
-                    return resolved;
-                }
+                const message = resolveI18nTemplate(
+                    "PQSdk.testAdapter.extensions.usingTestExtensionPathsConfig",
+                    { extensionCount: "1" }
+                );
+                outputChannel?.appendInfoLine(message);
+                return trimmed;
             }
             // Empty string - log and fall through to Priority 3
             outputChannel?.appendLine(
@@ -327,17 +321,16 @@ export async function determineExtensionsForTests(
         }
         // Handle array case
         else if (Array.isArray(testExtensionPaths)) {
-            // Filter out empty/whitespace-only strings, substitute variables, and resolve paths
+            // Filter out empty/whitespace-only strings
             const validPaths = testExtensionPaths
                 .filter(p => typeof p === 'string' && p.trim().length > 0)
-                .map(p => resolvePathRelativeToWorkspace(resolveSubstitutedValues(p)))
-                .filter((p): p is string => p !== undefined);
+                .map(p => p.trim());
             
             if (validPaths.length > 0) {
                 // Log if we filtered any items
                 if (validPaths.length < testExtensionPaths.length) {
                     const filtered = testExtensionPaths.length - validPaths.length;
-                    outputChannel?.appendLine(
+                    outputChannel?.appendInfoLine(
                         `Filtered out ${filtered} empty extension path(s) from test.extensionPaths configuration`
                     );
                 }
@@ -350,8 +343,8 @@ export async function determineExtensionsForTests(
                 return validPaths;
             }
             // All empty - log and fall through to Priority 3
-            outputChannel?.appendLine(
-                "test.extensionPaths array is configured but all paths are empty, falling back to defaultExtension"
+            outputChannel?.appendInfoLine(
+                "powerquery.sdk.test.extensionPaths array is configured but all paths are empty, falling back to defaultExtension"
             );
         }
     }

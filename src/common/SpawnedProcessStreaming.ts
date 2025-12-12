@@ -56,12 +56,12 @@ export class SpawnedProcessStreaming {
         return new Promise((resolve, reject) => {
             // Log command execution
             const commandLine = `${this.exePath} ${this.args.join(" ")}`;
-            this.options?.outputChannel?.appendLine(
+            this.options?.outputChannel?.appendDebugLine(
                 resolveI18nTemplate("PQSdk.testAdapter.executingCommand", { commandLine })
             );
 
             if (this.options?.cwd) {
-                this.options.outputChannel?.appendLine(
+                this.options.outputChannel?.appendDebugLine(
                     resolveI18nTemplate("PQSdk.testAdapter.workingDirectory", { 
                         directory: this.options.cwd 
                     })

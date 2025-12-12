@@ -52,18 +52,18 @@ export class TestRunCoordinator {
      * Executes the test run based on the request type (all tests vs. selected tests).
      */
     async run(): Promise<void> {
-        this.outputChannel.appendLine(extensionI18n["PQSdk.testAdapter.coordinator.startingExecution"]);
+        this.outputChannel.appendDebugLine(extensionI18n["PQSdk.testAdapter.coordinator.startingExecution"]);
 
         try {
             if (!this.request.include || this.request.include.length === 0) {
-                // Case 1: Run All Tests
+                // Run All Tests
                 await this.runAllTests();
             } else {
-                // Case 2 & 3: Run specific tests or groups
+                // Run specific tests or groups
                 await this.runSelectedTests();
             }
         } finally {
-            this.outputChannel.appendLine(extensionI18n["PQSdk.testAdapter.coordinator.executionCompleted"]);
+            this.outputChannel.appendInfoLine(extensionI18n["PQSdk.testAdapter.coordinator.executionCompleted"]);
         }
     }
 
@@ -71,9 +71,9 @@ export class TestRunCoordinator {
      * Runs all tests by iterating through all top-level test items corresponding to test settings files.
      */
     private async runAllTests(): Promise<void> {
-        this.outputChannel.appendLine(extensionI18n["PQSdk.testAdapter.coordinator.runningAllTests"]);
+        this.outputChannel.appendDebugLine(extensionI18n["PQSdk.testAdapter.coordinator.runningAllTests"]);
 
-        // Count unexpanded items to determine if we should use batch optimization
+        // Count unexpanded/undiscovered test settings items to determine if we should use batch optimization
         let unexpandedCount = 0;
         let totalCount = 0;
         this.testController.items.forEach((settingsItem) => {
@@ -87,7 +87,7 @@ export class TestRunCoordinator {
 
         // If most items are unexpanded, use optimized batch refresh
         if (unexpandedRatio > BATCH_DISCOVERY_THRESHOLD) {
-            this.outputChannel.appendLine(
+            this.outputChannel.appendDebugLine(
                 resolveI18nTemplate("PQSdk.testAdapter.coordinator.usingBatchOptimization", {
                     unexpandedCount: unexpandedCount.toString(),
                     totalCount: totalCount.toString(),
@@ -123,7 +123,7 @@ export class TestRunCoordinator {
         // Check if the settings item has been expanded (children discovered)
         if (settingsItem.children.size === 0) {
             // Auto-discover tests for unexpanded settings item
-            this.outputChannel.appendLine(
+            this.outputChannel.appendDebugLine(
                 resolveI18nTemplate("PQSdk.testAdapter.coordinator.autoDiscoveringTests", {
                     label: settingsItem.label,
                 })
@@ -142,13 +142,13 @@ export class TestRunCoordinator {
      * Runs selected tests based on the request.
      */
     private async runSelectedTests(): Promise<void> {
-        this.outputChannel.appendLine(extensionI18n["PQSdk.testAdapter.coordinator.runningSelectedTests"]);
+        this.outputChannel.appendDebugLine(extensionI18n["PQSdk.testAdapter.coordinator.runningSelectedTests"]);
 
         if (!this.request.include) return;
 
         // Step 1: Filter out redundant child items when parent settings file is also selected
         const filteredItems = this.filterRedundantTestItems(this.request.include);
-        this.outputChannel.appendLine(
+        this.outputChannel.appendDebugLine(
             resolveI18nTemplate("PQSdk.testAdapter.coordinator.filteredTestItems", {
                 originalCount: this.request.include.length.toString(),
                 filteredCount: filteredItems.length.toString(),
@@ -157,7 +157,7 @@ export class TestRunCoordinator {
 
         // Step 2: Group remaining items by their settings file
         const testGroups = this.groupTestsBySettingsFile(filteredItems);
-        this.outputChannel.appendLine(
+        this.outputChannel.appendDebugLine(
             resolveI18nTemplate("PQSdk.testAdapter.coordinator.groupedTestItems", {
                 groupCount: testGroups.length.toString(),
             })
@@ -173,7 +173,7 @@ export class TestRunCoordinator {
                 // Only the settings item is selected - check if it needs discovery
                 if (group.settingsItem.children.size === 0) {
                     // Auto-discover tests for unexpanded settings item
-                    this.outputChannel.appendLine(
+                    this.outputChannel.appendDebugLine(
                         resolveI18nTemplate("PQSdk.testAdapter.coordinator.autoDiscoveringTests", {
                             label: group.settingsItem.label,
                         })
@@ -196,14 +196,6 @@ export class TestRunCoordinator {
      */
     private async runTestSet(settingsItem: vscode.TestItem): Promise<void> {
         if (!settingsItem.uri) return;
-
-        const workspaceFolder = vscode.workspace.getWorkspaceFolder(settingsItem.uri);
-        if (!workspaceFolder) {
-            vscode.window.showErrorMessage(
-                extensionI18n["PQSdk.testAdapter.coordinator.settingsFileNotInWorkspaceFolder"]
-            );
-            return;
-        }
 
         // Create the TestRunExecutor
         const executor = new TestRunExecutor(
@@ -234,19 +226,11 @@ export class TestRunCoordinator {
 
         if (!settingsItem.uri) return;
 
-        const workspaceFolder = vscode.workspace.getWorkspaceFolder(settingsItem.uri);
-        if (!workspaceFolder) {
-            vscode.window.showErrorMessage(
-                extensionI18n["PQSdk.testAdapter.coordinator.settingsFileNotInWorkspaceFolder"]
-            );
-            return;
-        }
-
         // Generate test filter arguments
         const testFilterArgs = await this.generateTestFilters(group.childItems, settingsItem);
 
         if (testFilterArgs.length === 0) {
-            this.outputChannel.appendLine(
+            this.outputChannel.appendInfoLine(
                 resolveI18nTemplate("PQSdk.testAdapter.coordinator.noValidTestFiltersGenerated", {
                     settingsFilePath: settingsItem.uri.fsPath,
                 })

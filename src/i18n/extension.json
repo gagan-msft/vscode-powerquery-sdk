@@ -140,6 +140,8 @@
   "PQSdk.testAdapter.error.failedToRefreshTestSettingsItemUserMessage": "Failed to refresh test settings item: {label}",
   "PQSdk.testAdapter.startingTestDiscovery": "Starting test discovery for all test settings items",
   "PQSdk.testAdapter.testDiscoveryCompleted": "Test discovery completed successfully",
+  "PQSdk.testAdapter.testDiscoveryCompletedWithErrors": "Test discovery completed with errors for {failedCount} of {totalCount} test settings item(s). See output for details",
+  "PQSdk.testAdapter.testDiscoveryCompletedWithErrorsUserMessage": "Test discovery completed with errors for some test settings items",
   "PQSdk.testAdapter.error.testDiscoveryFailed": "Test discovery failed: {errorMessage}",
   "PQSdk.testAdapter.error.testDiscoveryFailedUserMessage": "Test discovery failed. See output for details",
   "PQSdk.testAdapter.error.invalidSettingsPathNotWatched": "Test Discovery: The path '{settingsPath}' configured in 'powerquery.sdk.test.settingsFiles' is invalid or inaccessible and will not be watched for changes",
