@@ -368,6 +368,106 @@ export async function determineExtensionsForTests(
         }
     }
     
+    
     // ERROR: No extensions configured anywhere
     throw new Error(extensionI18n["PQSdk.testAdapter.extensions.noExtensionsConfigured"]);
 }
+
+/**
+ * Builds command-line arguments for intermediate test results persistence.
+ * 
+ * Always enables persistence and sets the intermediate results folder.
+ * 
+ * Folder path precedence:
+ * 1. testsettings.json "IntermediateTestResultsFolder" (if defined)
+ * 2. Hard-coded default: "../TestResults"
+ * 
+ * @param settingsFilePath - Path to .testsettings.json file
+ * @param outputChannel - Optional output channel for debug logging
+ * @param fs - File system operations
+ * @returns Array of command-line arguments to append
+ */
+export async function buildIntermediateResultsArgs(
+    settingsFilePath: string,
+    outputChannel?: PqSdkOutputChannel,
+    fs: FileSystemOperations = defaultFileSystemOperations
+): Promise<string[]> {
+    const args: string[] = [];
+    
+    // Always enable persistence
+    args.push("--persistIntermediateTestResults");
+    
+    // Determine folder path
+    const config = await readIntermediateResultsConfig(settingsFilePath, outputChannel, fs);
+    let folderPath: string;
+    
+    if (config.intermediateTestResultsFolder !== undefined) {
+        // Use value from testsettings.json
+        folderPath = config.intermediateTestResultsFolder;
+        outputChannel?.appendDebugLine(
+            resolveI18nTemplate("PQSdk.testAdapter.intermediateResults.usingFolderFromSettings", {
+                settingsFilePath,
+                folderPath
+            })
+        );
+    } else {
+        // Use hard-coded default
+        folderPath = "../TestResults";
+        outputChannel?.appendDebugLine(
+            extensionI18n["PQSdk.testAdapter.intermediateResults.usingDefaultFolder"]
+        );
+    }
+    
+    args.push("--intermediateTestResultsFolder", folderPath);
+    
+    // Log final configuration
+    outputChannel?.appendInfoLine(
+        resolveI18nTemplate("PQSdk.testAdapter.intermediateResults.finalConfig", {
+            persist: "true",
+            folder: folderPath
+        })
+    );
+    
+    return args;
+}
+
+/**
+ * Helper to read intermediate results config from testsettings.json.
+ * Returns undefined if not present or if file cannot be read.
+ */
+async function readIntermediateResultsConfig(
+    settingsFilePath: string,
+    outputChannel?: PqSdkOutputChannel,
+    fs: FileSystemOperations = defaultFileSystemOperations
+): Promise<{
+    intermediateTestResultsFolder?: string;
+}> {
+    try {
+        const data = await fs.readFile(vscode.Uri.file(settingsFilePath));
+        const textData = new TextDecoder().decode(data);
+        const json = JSON.parse(textData);
+        
+        return {
+            intermediateTestResultsFolder: 
+                typeof json.IntermediateTestResultsFolder === 'string' 
+                    ? json.IntermediateTestResultsFolder 
+                    : undefined
+        };
+    } catch (error) {
+        // Log debug message about fallback
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        outputChannel?.appendDebugLine(
+            resolveI18nTemplate("PQSdk.testAdapter.intermediateResults.failedToReadSettings", {
+                settingsFilePath,
+                errorMessage
+            })
+        );
+        outputChannel?.appendDebugLine(
+            extensionI18n["PQSdk.testAdapter.intermediateResults.fallingBackToDefaults"]
+        );
+        
+        // Return empty config - caller will use default
+        return {};
+    }
+}
+

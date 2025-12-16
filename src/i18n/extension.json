@@ -245,5 +245,11 @@
   "PQSdk.testAdapter.coordinator.skippingTestItemWithoutUri": "Skipping test item without URI: {itemId}",
   "PQSdk.testAdapter.coordinator.errorCalculatingRelativePath": "Error calculating relative path for test item {itemId}: {errorMessage}",
   "PQSdk.testAdapter.coordinator.skippingTestItemWithPath": "Skipping test item: {filePath}",
-  "PQSdk.testAdapter.coordinator.noValidTestFiltersGenerated": "No valid test filters generated for settings file: {settingsFilePath}"
+  "PQSdk.testAdapter.coordinator.noValidTestFiltersGenerated": "No valid test filters generated for settings file: {settingsFilePath}",
+  "PQSdk.testAdapter.intermediateResults.usingFolderFromSettings": "Using IntermediateTestResultsFolder=\"{folderPath}\" from {settingsFilePath}",
+  "PQSdk.testAdapter.intermediateResults.usingDefaultFolder": "Using default IntermediateTestResultsFolder=\"../TestResults\"",
+  "PQSdk.testAdapter.intermediateResults.finalConfig": "Intermediate results config: persist={persist}, folder=\"{folder}\"",
+  "PQSdk.testAdapter.intermediateResults.failedToReadSettings": "Failed to read intermediate results config from {settingsFilePath}: {errorMessage}",
+  "PQSdk.testAdapter.intermediateResults.fallingBackToDefaults": "Falling back to default intermediate results configuration"
 }
+

@@ -17,7 +17,7 @@ import { SpawnedProcessStreaming } from "../../common/SpawnedProcessStreaming";
 import { PqSdkOutputChannel } from "../../features/PqSdkOutputChannel";
 import { extensionI18n, resolveI18nTemplate } from "../../i18n/extension";
 import { getNormalizedPath } from "./utils/pathUtils";
-import { determineExtensionsForTests } from "./utils/testSettingsUtils";
+import { determineExtensionsForTests, buildIntermediateResultsArgs } from "./utils/testSettingsUtils";
 import { PqTestCommandBuilder } from "./helpers/PqTestCommandBuilder";
 import { PqTestResultParser, PqTestResultEventType } from "./helpers/PqTestResultParser";
 import { TestResultUpdater } from "./helpers/TestResultUpdater";
@@ -87,7 +87,13 @@ export class TestRunExecutor {
             // Step 1: Determine which extension(s) to use based on precedence rules
             const extensions = await determineExtensionsForTests(this.settingsFile.fsPath, this.outputChannel);
 
-            // Step 2: Build the lookup map for test items
+            // Step 2: Build intermediate results arguments
+            const intermediateResultsArgs = await buildIntermediateResultsArgs(
+                this.settingsFile.fsPath,
+                this.outputChannel
+            );
+
+            // Step 3: Build the lookup map for test items
             const runItemsMap = new Map<string, vscode.TestItem>();
             this.testItems.forEach((item) => {
                 if (item.uri) {
@@ -96,15 +102,21 @@ export class TestRunExecutor {
                 }
             });
 
-            // Step 3: Build the command using PqTestCommandBuilder
+            // Step 4: Build the command using PqTestCommandBuilder
             const commandBuilder = new PqTestCommandBuilder(
                 "run-compare",
                 this.settingsFile,
                 extensions
             );
-            const args = commandBuilder.buildArgs(additionalArgs || []);
+            
+            const allAdditionalArgs = [
+                ...intermediateResultsArgs,
+                ...(additionalArgs || [])
+            ];
+            
+            const args = commandBuilder.buildArgs(allAdditionalArgs);
 
-            // Step 4: Execute the process using SpawnedProcessStreaming
+            // Step 5: Execute the process using SpawnedProcessStreaming
             this.outputChannel.appendInfoLine(
                 resolveI18nTemplate("PQSdk.testAdapter.executor.executingCommand", {
                     exePath: this.pqTestPath,
@@ -120,11 +132,11 @@ export class TestRunExecutor {
 
             const resultsStream = await processRunner.run();
 
-            // Step 4: Create the result parser and updater
+            // Step 6: Create the result parser and updater
             const resultParser = new PqTestResultParser(this.outputChannel);
             const resultUpdater = new TestResultUpdater(this.testRun, this.outputChannel);
 
-            // Step 5: Implement the state machine
+            // Step 7: Implement the state machine
             // Consume the event stream from the parser
             for await (const event of resultParser.parseStream(resultsStream, this.cancellationToken)) {
                 let currentTest: vscode.TestItem | undefined = undefined;
