@@ -20,6 +20,12 @@ import { resolvePqTestExecutablePath } from "../../utils/pqTestPath";
 const DELAY_FOR_UI_REVEAL_MS = 250;
 const DELAY_BEFORE_SINGLE_CHILD_REVEAL_MS = 400;
 
+/**
+ * Guard flag to prevent concurrent refresh operations.
+ * Set to true when refresh starts, cleared in finally block.
+ */
+let isRefreshInProgress = false;
+
 // https://code.visualstudio.com/api/extension-guides/testing#additional-contribution-points
 export function registerCommands(
     context: vscode.ExtensionContext,
@@ -193,12 +199,19 @@ function recreateParentWithSingleChild(
 /**
  * Expands a test settings item in the UI by revealing its children
  * @param delayBeforeReveal - Optional delay in milliseconds before revealing single-child items (useful for batch operations)
+ * @param cancellationToken - Optional cancellation token to stop expansion early
  */
 async function expandTestSettingsItem(
     testItem: vscode.TestItem,
     controller: vscode.TestController,
-    delayBeforeReveal: number = 0
+    delayBeforeReveal: number = 0,
+    cancellationToken?: vscode.CancellationToken
 ): Promise<void> {
+    // Early exit if cancelled
+    if (cancellationToken?.isCancellationRequested) {
+        return;
+    }
+
     if (!testItem || !testItem.uri) {
         return;
     }
@@ -227,6 +240,11 @@ async function expandTestSettingsItem(
         // Expand all folders by revealing their first child
         let hasAnyFolder = false;
         for (const [, child] of testItem.children) {
+            // Check cancellation before each reveal operation
+            if (cancellationToken?.isCancellationRequested) {
+                return;
+            }
+
             if (child.children.size > 0) {
                 hasAnyFolder = true;
                 // Child is a folder - get its first child and reveal it to expand the folder
@@ -238,7 +256,7 @@ async function expandTestSettingsItem(
         }
 
         // If there are no folders (only test files at root), reveal the first test file
-        if (!hasAnyFolder) {
+        if (!hasAnyFolder && !cancellationToken?.isCancellationRequested) {
             const firstChild = Array.from(testItem.children)[0][1];
             await vscode.commands.executeCommand(ExtensionConstants.TestAdapter.RevealTestInExplorerCommand, firstChild);
         }
@@ -252,8 +270,14 @@ export async function refreshSettingsItem(
     testItem: vscode.TestItem,
     controller: vscode.TestController,
     outputChannel: PqSdkOutputChannel,
-    skipReveal: boolean = false
+    skipReveal: boolean = false,
+    cancellationToken?: vscode.CancellationToken
 ): Promise<void> {
+    // Early exit if cancelled
+    if (cancellationToken?.isCancellationRequested) {
+        return;
+    }
+
     if (!testItem || !testItem.uri) {
         //Todo: log
         return;
@@ -273,11 +297,11 @@ export async function refreshSettingsItem(
         testItem.error = undefined;
 
         // Trigger test discovery via resolveTestItem
-        await resolveTestItem(testItem, controller, outputChannel);
+        await resolveTestItem(testItem, controller, outputChannel, cancellationToken);
 
         // Auto-expand the item in the UI (unless skipped for batch operations)
-        if (!skipReveal) {
-            await expandTestSettingsItem(testItem, controller);
+        if (!skipReveal && !cancellationToken?.isCancellationRequested) {
+            await expandTestSettingsItem(testItem, controller, 0, cancellationToken);
         }
 
         const successMessage = resolveI18nTemplate(
@@ -324,23 +348,85 @@ async function showExpectedOutputFile(testItem?: vscode.TestItem): Promise<void>
  * Triggers test re-discovery for all top-level test items (test settings files).
  * Uses a two-phase approach: concurrent discovery followed by sequential UI expansion.
  * Sequential expansion avoids VS Code UI race conditions and ensures all items are reliably revealed.
+ * 
+ * This is a wrapper that provides progress UI and cancellation support.
  */
 export async function refreshAllTests(
     controller: vscode.TestController,
     outputChannel: PqSdkOutputChannel
 ): Promise<void> {
+    // Guard against concurrent refreshes
+    if (isRefreshInProgress) {
+        const message = extensionI18n["PQSdk.testAdapter.refreshAlreadyInProgress"];
+        vscode.window.showWarningMessage(message);
+        return;
+    }
+
+    isRefreshInProgress = true;
+
+    try {
+        return await vscode.window.withProgress(
+            {
+                location: vscode.ProgressLocation.Notification,
+                title: extensionI18n["PQSdk.testAdapter.startingTestDiscovery"],
+                cancellable: true
+            },
+            async (progress, cancellationToken) => {
+                return await refreshAllTestsInternal(
+                    controller,
+                    outputChannel,
+                    progress,
+                    cancellationToken
+                );
+            }
+        );
+    } finally {
+        isRefreshInProgress = false;
+    }
+}
+
+/**
+ * Internal implementation of test discovery with cancellation support.
+ * Separated from the public wrapper to allow for testing and token injection.
+ */
+async function refreshAllTestsInternal(
+    controller: vscode.TestController,
+    outputChannel: PqSdkOutputChannel,
+    progress: vscode.Progress<{ increment?: number; message?: string }>,
+    cancellationToken: vscode.CancellationToken
+): Promise<void> {
     const startMessage = extensionI18n["PQSdk.testAdapter.startingTestDiscovery"];
     outputChannel.appendInfoLine(startMessage);
 
     try {
+        // ====================================================================
         // Phase 1: Run all discoveries concurrently (skip reveal to avoid timing issues)
+        // ====================================================================
+        progress.report({ 
+            increment: 0, 
+            message: extensionI18n["PQSdk.testAdapter.loadingTestSettings"] 
+        });
+
         const refreshPromises: Promise<void>[] = [];
         controller.items.forEach(item => {
-            refreshPromises.push(refreshSettingsItem(item, controller, outputChannel, true));
+            refreshPromises.push(refreshSettingsItem(item, controller, outputChannel, true, cancellationToken));
         });
         await Promise.all(refreshPromises);
 
+        // Check cancellation after Phase 1
+        if (cancellationToken.isCancellationRequested) {
+            outputChannel.appendInfoLine(extensionI18n["PQSdk.testAdapter.testDiscoveryCancelled"]);
+            return;
+        }
+
+        // ====================================================================
         // Phase 2: Expand all items sequentially to avoid UI race conditions
+        // ====================================================================
+        progress.report({ 
+            increment: 40, 
+            message: extensionI18n["PQSdk.testAdapter.expandingTestItems"] 
+        });
+
         // Create a snapshot to avoid issues with collection modification during iteration
         const items: vscode.TestItem[] = [];
         controller.items.forEach(item => items.push(item));
@@ -348,12 +434,30 @@ export async function refreshAllTests(
         // Sort items alphabetically by label for consistent, predictable expansion order
         items.sort((a, b) => a.label.localeCompare(b.label));
 
+        const totalItems = items.length;
+        let completed = 0;
+
         for (const item of items) {
+            // Check cancellation at loop boundary
+            if (cancellationToken.isCancellationRequested) {
+                const cancelMessage = resolveI18nTemplate(
+                    "PQSdk.testAdapter.testDiscoveryCancelledAfterItems",
+                    { completed: completed.toString(), total: totalItems.toString() }
+                );
+                outputChannel.appendInfoLine(cancelMessage);
+                return;
+            }
+
             // Use delay for single-child items to give UI time to register recreated items
-            await expandTestSettingsItem(item, controller, DELAY_BEFORE_SINGLE_CHILD_REVEAL_MS);
+            await expandTestSettingsItem(item, controller, DELAY_BEFORE_SINGLE_CHILD_REVEAL_MS, cancellationToken);
+
+            completed++;
+            progress.report({
+                increment: 60 / totalItems,
+                message: `Expanded ${completed}/${totalItems} test settings`
+            });
         }
 
-        // Check for errors across all test items
         const itemsWithErrors: vscode.TestItem[] = [];
         controller.items.forEach(item => {
             if (item.error) {
@@ -386,6 +490,12 @@ export async function refreshAllTests(
             vscode.window.showWarningMessage(userMessage);
         }
     } catch (error) {
+        // Check if cancellation caused the error
+        if (cancellationToken.isCancellationRequested) {
+            outputChannel.appendInfoLine(extensionI18n["PQSdk.testAdapter.testDiscoveryCancelled"]);
+            return;
+        }
+
         const errorMessage = error instanceof Error ? error.message : String(error);
         const logMessage = resolveI18nTemplate(
             "PQSdk.testAdapter.error.testDiscoveryFailed",
