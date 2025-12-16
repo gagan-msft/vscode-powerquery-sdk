@@ -34,7 +34,7 @@ export function registerCommands(
 ): void {
     context.subscriptions.push(vscode.commands.registerCommand(ExtensionConstants.TestAdapter.OpenOutputFileCommand, showExpectedOutputFile));
     context.subscriptions.push(vscode.commands.registerCommand(ExtensionConstants.TestAdapter.RefreshAllTestsCommand, () => refreshAllTests(controller, outputChannel)));
-    context.subscriptions.push(vscode.commands.registerCommand(ExtensionConstants.TestAdapter.RefreshSettingsItemTestsCommand, (testItem) => refreshSettingsItem(testItem, controller, outputChannel)));
+    context.subscriptions.push(vscode.commands.registerCommand(ExtensionConstants.TestAdapter.RefreshSettingsItemTestsCommand, (testItem) => refreshSettingsItemWithProgress(testItem, controller, outputChannel)));
 }
 
 /**
@@ -261,6 +261,42 @@ async function expandTestSettingsItem(
             await vscode.commands.executeCommand(ExtensionConstants.TestAdapter.RevealTestInExplorerCommand, firstChild);
         }
     }
+}
+
+/**
+ * Wrapper for refreshSettingsItem that provides progress UI and cancellation support.
+ * This is the entry point from the command registration.
+ */
+async function refreshSettingsItemWithProgress(
+    testItem: vscode.TestItem,
+    controller: vscode.TestController,
+    outputChannel: PqSdkOutputChannel
+): Promise<void> {
+    if (!testItem) {
+        return;
+    }
+
+    const progressTitle = resolveI18nTemplate(
+        "PQSdk.testAdapter.discoveringTestsForItem",
+        { label: testItem.label }
+    );
+
+    return vscode.window.withProgress(
+        {
+            location: vscode.ProgressLocation.Notification,
+            title: progressTitle,
+            cancellable: true
+        },
+        async (progress, cancellationToken) => {
+            await refreshSettingsItem(
+                testItem,
+                controller,
+                outputChannel,
+                false, // skipReveal = false (we want to expand UI)
+                cancellationToken
+            );
+        }
+    );
 }
 
 /**
