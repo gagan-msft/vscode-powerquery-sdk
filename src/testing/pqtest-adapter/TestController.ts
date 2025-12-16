@@ -60,7 +60,7 @@ export function registerTestController(
     controller.resolveHandler = async item => {
         if (item) {
             // User expanded a test settings file, so discover its children
-            await resolveTestItem(item, controller, outputChannel);
+            await refreshSettingsItem(item, controller, outputChannel);
         }
         // When item is null, do nothing - TestWatcherManager handles initial discovery
     };
