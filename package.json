@@ -192,6 +192,13 @@
                     "order": 41,
                     "description": "%extension.pqtest.config.test.extensionPaths.description%"
                 },
+                "powerquery.sdk.test.defaultIntermediateResultsFolder": {
+                    "scope": "window",
+                    "type": "string",
+                    "default": "../TestResults",
+                    "order": 42,
+                    "description": "%extension.pqtest.config.test.defaultIntermediateResultsFolder.description%"
+                },
                 "powerquery.sdk.externals.msbuildPath": {
                     "scope": "machine-overridable",
                     "type": "string",

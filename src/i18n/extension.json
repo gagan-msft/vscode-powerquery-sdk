@@ -247,6 +247,7 @@
   "PQSdk.testAdapter.coordinator.skippingTestItemWithPath": "Skipping test item: {filePath}",
   "PQSdk.testAdapter.coordinator.noValidTestFiltersGenerated": "No valid test filters generated for settings file: {settingsFilePath}",
   "PQSdk.testAdapter.intermediateResults.usingFolderFromSettings": "Using IntermediateTestResultsFolder=\"{folderPath}\" from {settingsFilePath}",
+  "PQSdk.testAdapter.intermediateResults.usingFolderFromConfig": "Using IntermediateTestResultsFolder=\"{folderPath}\" from VS Code configuration",
   "PQSdk.testAdapter.intermediateResults.usingDefaultFolder": "Using default IntermediateTestResultsFolder=\"../TestResults\"",
   "PQSdk.testAdapter.intermediateResults.finalConfig": "Intermediate results config: persist={persist}, folder=\"{folder}\"",
   "PQSdk.testAdapter.intermediateResults.failedToReadSettings": "Failed to read intermediate results config from {settingsFilePath}: {errorMessage}",

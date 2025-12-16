@@ -380,7 +380,8 @@ export async function determineExtensionsForTests(
  * 
  * Folder path precedence:
  * 1. testsettings.json "IntermediateTestResultsFolder" (if defined)
- * 2. Hard-coded default: "../TestResults"
+ * 2. VS Code config "powerquery.sdk.test.defaultIntermediateResultsFolder" (if defined)
+ * 3. Hard-coded default: "../TestResults"
  * 
  * @param settingsFilePath - Path to .testsettings.json file
  * @param outputChannel - Optional output channel for debug logging
@@ -397,12 +398,13 @@ export async function buildIntermediateResultsArgs(
     // Always enable persistence
     args.push("--persistIntermediateTestResults");
     
-    // Determine folder path
+    // Read testsettings.json
     const config = await readIntermediateResultsConfig(settingsFilePath, outputChannel, fs);
-    let folderPath: string;
     
+    // Determine folder path with precedence
+    let folderPath: string;
     if (config.intermediateTestResultsFolder !== undefined) {
-        // Use value from testsettings.json
+        // Priority 1: Use value from testsettings.json
         folderPath = config.intermediateTestResultsFolder;
         outputChannel?.appendDebugLine(
             resolveI18nTemplate("PQSdk.testAdapter.intermediateResults.usingFolderFromSettings", {
@@ -411,11 +413,22 @@ export async function buildIntermediateResultsArgs(
             })
         );
     } else {
-        // Use hard-coded default
-        folderPath = "../TestResults";
-        outputChannel?.appendDebugLine(
-            extensionI18n["PQSdk.testAdapter.intermediateResults.usingDefaultFolder"]
-        );
+        // Priority 2: Check VS Code config
+        const configValue = ExtensionConfigurations.DefaultIntermediateResultsFolder;
+        if (configValue && configValue.trim().length > 0) {
+            folderPath = configValue.trim();
+            outputChannel?.appendDebugLine(
+                resolveI18nTemplate("PQSdk.testAdapter.intermediateResults.usingFolderFromConfig", {
+                    folderPath
+                })
+            );
+        } else {
+            // Priority 3: Hard-coded constant
+            folderPath = ExtensionConstants.TestAdapter.DefaultIntermediateResultsFolder;
+            outputChannel?.appendDebugLine(
+                extensionI18n["PQSdk.testAdapter.intermediateResults.usingDefaultFolder"]
+            );
+        }
     }
     
     args.push("--intermediateTestResultsFolder", folderPath);

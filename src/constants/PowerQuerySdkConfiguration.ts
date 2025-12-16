@@ -314,6 +314,19 @@ export const ExtensionConfigurations = {
         const substituted = resolveSubstitutedValues(value);
         return resolvePathRelativeToWorkspace(substituted);
     },
+    get DefaultIntermediateResultsFolder(): string | undefined {
+        const config: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(
+            ExtensionConstants.ConfigNames.PowerQuerySdk.name,
+        );
+
+        const value: string | undefined = config.get<string>(
+            ExtensionConstants.ConfigNames.PowerQuerySdk.properties.defaultIntermediateResultsFolder,
+        );
+
+        // Don't resolve paths - we pass the value as-is to PQTest.exe
+        // PQTest should resolve relative paths relative to the settings file
+        return value;
+    },
     get pqTestExecutablePath(): string | undefined {
         const config: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(
             ExtensionConstants.ConfigNames.PowerQuerySdk.name,
