@@ -197,9 +197,22 @@ export class TestResultUpdater {
             const actualFileExists = await fileExists(actualFilePath);
 
             if (expectedFileExists && actualFileExists) {
-                // Read both files and set them for diff view
-                failedMessage.actualOutput = await fs.promises.readFile(actualFilePath, "utf8");
-                failedMessage.expectedOutput = await fs.promises.readFile(expectedFilePath, "utf8");
+                // Read both files
+                const expectedRaw = await fs.promises.readFile(expectedFilePath, "utf8");
+                const actualRaw = await fs.promises.readFile(actualFilePath, "utf8");
+
+                // Format both for consistent diff comparison
+                failedMessage.expectedOutput = this.formatOutputForDiff(expectedRaw, expectedFilePath);
+                failedMessage.actualOutput = this.formatOutputForDiff(actualRaw, actualFilePath);
+
+                // Log if formatting was applied 
+                if (expectedRaw !== failedMessage.expectedOutput || actualRaw !== failedMessage.actualOutput) {
+                    this.outputChannel.appendDebugLine(
+                        resolveI18nTemplate("PQSdk.testAdapter.updater.appliedFormattingForDiff", {
+                            context: context,
+                        })
+                    );
+                }
             } else {
                 // Determine which files are missing for a detailed error message
                 const missingFiles = [
@@ -260,6 +273,57 @@ export class TestResultUpdater {
                 "PQSdk.testAdapter.updater.errorReadingComparisonFiles",
                 { error: errorMessage }
             );
+        }
+    }
+
+    /**
+     * Formats output content for consistent diff view display.
+     * Attempts to format as JSON first, then falls back to basic normalization.
+     * If any error occurs during formatting, returns the original content unchanged.
+     * 
+     * @param content The raw file content
+     * @param filePath The file path (used for logging context)
+     * @returns Formatted content suitable for diff comparison, or original content if formatting fails
+     */
+    private formatOutputForDiff(content: string, filePath: string): string {
+        try {
+            //Try to parse and format as JSON
+            try {
+                const trimmed = content.trim();
+                if (trimmed.length > 0) {
+                    const parsed = JSON.parse(trimmed);
+                    // Successfully parsed as JSON - return with consistent formatting
+                    return JSON.stringify(parsed, null, 2);
+                }
+            } catch (jsonError) {
+                // Not valid JSON or empty, continue to normalization strategy
+                this.outputChannel.appendDebugLine(
+                    resolveI18nTemplate("PQSdk.testAdapter.updater.jsonParseFailedFallingBackToNormalization", {
+                        filePath,
+                    })
+                );
+            }
+
+            // Apply basic normalization for non-JSON content
+            // - Normalize line endings (CRLF → LF)
+            // - Remove trailing whitespace from each line
+            // - Trim leading/trailing empty lines
+            return content
+                .replace(/\r\n/g, "\n") // Normalize CRLF to LF
+                .split("\n")
+                .map((line) => line.trimEnd()) // Remove trailing whitespace per line
+                .join("\n")
+                .trim(); // Remove leading/trailing newlines
+        } catch (formattingError) {
+            // If any unexpected error occurs during formatting, return original content
+            const errorMessage = formattingError instanceof Error ? formattingError.message : String(formattingError);
+            this.outputChannel.appendLine(
+                resolveI18nTemplate("PQSdk.testAdapter.updater.formattingFailedUsingOriginal", {
+                    filePath,
+                    error: errorMessage,
+                })
+            );
+            return content;
         }
     }
 }

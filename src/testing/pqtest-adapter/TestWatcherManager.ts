@@ -16,6 +16,7 @@ import { createTestItem } from "./utils/testUtils";
 import { PqSdkOutputChannel } from "../../features/PqSdkOutputChannel";
 import { getNormalizedPath, getNormalizedUriString } from "./utils/pathUtils";
 import { extensionI18n, resolveI18nTemplate } from "../../i18n/extension";
+import { refreshSettingsItem } from "./TestController";
 
 export class TestWatcherManager implements vscode.Disposable {
     private fileWatchers = new Map<string, vscode.FileSystemWatcher>();
@@ -226,8 +227,8 @@ export class TestWatcherManager implements vscode.Disposable {
 
                 // Clear children and re-resolve
                 testItem.children.replace([]);
-                // TODO: Re-enable when TestResolver is migrated
-                // await resolveTestItem(testItem, this.controller, this.outputChannel);
+                
+                await refreshSettingsItem(testItem, this.controller, this.outputChannel);
             } else {
                 this.outputChannel.appendDebugLine(resolveI18nTemplate("PQSdk.testAdapter.skippingUnexpandedItem", { filePath: uri.fsPath }));
             }
