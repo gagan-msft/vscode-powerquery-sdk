@@ -83,8 +83,13 @@ export function getLeafNodes(item: vscode.TestItem): vscode.TestItem[] {
  * @param originalTestId - The original test item ID
  * @param settingsFileUri - The settings file URI
  * @returns The composite ID string
+ * @throws Error if settingsFileUri is null or undefined
  */
 export function createCompositeId(originalTestId: string, settingsFileUri: vscode.Uri): string {
+    if (!settingsFileUri) {
+        throw new Error("settingsFileUri is required for createCompositeId");
+    }
+
     const normalizedSettingsUri: string = getNormalizedUriString(settingsFileUri);
 
     return `${originalTestId}|${normalizedSettingsUri}`;
