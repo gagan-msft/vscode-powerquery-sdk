@@ -46,6 +46,7 @@ const ConfigNames = {
             testExtensionPaths: "test.extensionPaths" as const,
             pqTestExecutablePath: "test.pqtest" as const,
             defaultIntermediateResultsFolder: "test.defaultIntermediateResultsFolder" as const,
+            cleanupIntermediateResultsAfterHours: "test.cleanupIntermediateResultsAfterHours" as const,
         },
     },
 };
@@ -119,6 +120,7 @@ const TestAdapter = {
     TestFileEnding: ".query.pq" as const,
     OutputFileEnding: ".pqout" as const,
     DefaultIntermediateResultsFolder: "../TestResults" as const,
+    CleanupIntermediateResultsAfterHours: 24 as const,
     // Command IDs (registered in package.json)
     OpenOutputFileCommand: "powerquery.sdk.test.openOutputFile" as const,
     RefreshAllTestsCommand: "powerquery.sdk.test.refreshTests" as const,

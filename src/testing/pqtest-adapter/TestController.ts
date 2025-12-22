@@ -15,6 +15,7 @@ import { TestWatcherManager } from "./TestWatcherManager";
 import { createTestItem } from "./utils/testUtils";
 import { TestRunCoordinator } from "./TestRunCoordinator";
 import { resolvePqTestExecutablePath } from "../../utils/pqTestPath";
+import { initializeCleanupTimer, cleanupOldIntermediateResults, maybeCleanupIntermediateResults } from "./utils/cleanupUtils";
 
 // UI delay constants for test expansion operations
 const DELAY_FOR_UI_REVEAL_MS = 250;
@@ -36,32 +37,6 @@ export function registerCommands(
     context.subscriptions.push(vscode.commands.registerCommand(ExtensionConstants.TestAdapter.RefreshAllTestsCommand, () => refreshAllTests(controller, outputChannel)));
     context.subscriptions.push(vscode.commands.registerCommand(ExtensionConstants.TestAdapter.RefreshSettingsItemTestsCommand, (testItem) => refreshSettingsItemWithProgress(testItem, controller, outputChannel)));
     context.subscriptions.push(vscode.commands.registerCommand(ExtensionConstants.TestAdapter.ClearAllTestsCommand, () => clearAllTests(controller, outputChannel)));
-}
-
-/**
- * Clears all children from top-level test settings items,
- * collapsing them in the Test Explorer UI.
- * Items can be re-expanded to trigger rediscovery.
- */
-function clearAllTests(
-    controller: vscode.TestController,
-    outputChannel: PqSdkOutputChannel
-): void {
-    let clearedCount = 0;
-
-    controller.items.forEach(item => {
-        if (item.children.size > 0) {
-            item.children.replace([]);
-            item.canResolveChildren = true;
-            clearedCount++;
-        }
-    });
-
-    const message = resolveI18nTemplate(
-        "PQSdk.testAdapter.testsCleared",
-        { clearedCount: clearedCount.toString() }
-    );
-    outputChannel.appendDebugLine(message);
 }
 
 /**
@@ -88,12 +63,16 @@ export function registerTestController(
     watcherManager.initialize();
     context.subscriptions.push(watcherManager);
 
+    // Initialize cleanup timer and run initial cleanup
+    initializeCleanupTimer(outputChannel);
+    void cleanupOldIntermediateResults(outputChannel);
+
     // Only handle child test item resolution
     // Initial discovery is handled by TestWatcherManager
     controller.resolveHandler = async item => {
         if (item) {
             // User expanded a test settings file, so discover its children
-            await refreshSettingsItem(item, controller, outputChannel);
+            await refreshSettingsItemWithProgress(item, controller, outputChannel);
         }
         // When item is null, do nothing - TestWatcherManager handles initial discovery
     };
@@ -110,6 +89,9 @@ async function runHandler(
     controller: vscode.TestController,
     outputChannel: PqSdkOutputChannel
 ): Promise<void> {
+    // Trigger throttled cleanup of old intermediate results (fire-and-forget)
+    maybeCleanupIntermediateResults();
+
     const runName: string = getTestRunFolderName();
     const testRun: vscode.TestRun = controller.createTestRun(request, runName);
 
@@ -159,6 +141,32 @@ function getTestRunFolderName(): string {
     const seconds = String(now.getSeconds()).padStart(2, "0");
 
     return `${year}-${month}-${day}T${hours}-${minutes}-${seconds}`;
+}
+
+/**
+ * Clears all children from top-level test settings items,
+ * collapsing them in the Test Explorer UI.
+ * Items can be re-expanded to trigger rediscovery.
+ */
+function clearAllTests(
+    controller: vscode.TestController,
+    outputChannel: PqSdkOutputChannel
+): void {
+    let clearedCount = 0;
+
+    controller.items.forEach(item => {
+        if (item.children.size > 0) {
+            item.children.replace([]);
+            item.canResolveChildren = true;
+            clearedCount++;
+        }
+    });
+
+    const message = resolveI18nTemplate(
+        "PQSdk.testAdapter.testsCleared",
+        { clearedCount: clearedCount.toString() }
+    );
+    outputChannel.appendDebugLine(message);
 }
 
 /**

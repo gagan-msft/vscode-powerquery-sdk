@@ -30,6 +30,7 @@
     "extension.pqtest.config.test.settingsFiles.description": "Path to a pqtest settings file (extension: .testsettings.json), a directory containing pqtest settings files, or an array of paths to pqtest settings files",
     "extension.pqtest.config.test.extensionPaths.description": "Path(s) to connector extension files for test discovery and execution. Can be a single path or an array of paths",
     "extension.pqtest.config.test.defaultIntermediateResultsFolder.description": "Default folder path for intermediate test results when not specified in .testsettings.json. Path is relative to the test settings file location",
+    "extension.pqtest.config.test.cleanupIntermediateResultsAfterHours.description": "Automatically delete intermediate test results older than this many hours. Set to 0 to disable automatic cleanup",
     "extension.pqtest.taskDefinitions.properties.operation.description": "The operation to run",
     "extension.pqtest.taskDefinitions.properties.additionalArgs.description": "Additional commandline arguments for the operation",
     "extension.pqtest.taskDefinitions.properties.pathToConnector.description": "Path to the connector file (--extension)",

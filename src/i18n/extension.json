@@ -261,6 +261,10 @@
   "PQSdk.testAdapter.intermediateResults.usingDefaultFolder": "Using default IntermediateTestResultsFolder=\"../TestResults\"",
   "PQSdk.testAdapter.intermediateResults.finalConfig": "Intermediate results config: persist={persist}, folder=\"{folder}\"",
   "PQSdk.testAdapter.intermediateResults.failedToReadSettings": "Failed to read intermediate results config from {settingsFilePath}: {errorMessage}",
-  "PQSdk.testAdapter.intermediateResults.fallingBackToDefaults": "Falling back to default intermediate results configuration"
+  "PQSdk.testAdapter.intermediateResults.fallingBackToDefaults": "Falling back to default intermediate results configuration",
+  "PQSdk.testAdapter.cleanup.disabled": "Cleanup of intermediate test results is disabled",
+  "PQSdk.testAdapter.cleanup.folderCleanupFailed": "Failed to cleanup folder {folderPath}: {errorMessage}",
+  "PQSdk.testAdapter.cleanup.entryDeleteFailed": "Failed to delete {entryPath}: {errorMessage}",
+  "PQSdk.testAdapter.cleanup.completed": "Cleaned up {count} old intermediate test result(s) from {folderPath}"
 }
 

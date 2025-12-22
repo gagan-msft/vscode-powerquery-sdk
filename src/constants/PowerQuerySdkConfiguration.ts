@@ -338,6 +338,17 @@ export const ExtensionConfigurations = {
 
         return resolveSubstitutedValues(value);
     },
+    get CleanupIntermediateResultsAfterHours(): number {
+        const config: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(
+            ExtensionConstants.ConfigNames.PowerQuerySdk.name,
+        );
+
+        const value: number | undefined = config.get(
+            ExtensionConstants.ConfigNames.PowerQuerySdk.properties.cleanupIntermediateResultsAfterHours,
+        );
+
+        return value ?? ExtensionConstants.TestAdapter.CleanupIntermediateResultsAfterHours;
+    },
 };
 
 const NugetDownloadVscUrl: vscode.Uri = vscode.Uri.parse(ExtensionConstants.NugetDownloadUrl);
