@@ -117,6 +117,12 @@
                 "title": "%extension.pqtest.test.refreshSettingsItemTests.title%",
                 "category": "Power query",
                 "icon": "$(refresh)"
+            },
+            {
+                "command": "powerquery.sdk.test.clearTests",
+                "title": "%extension.pqtest.test.clearTests.title%",
+                "category": "Power query",
+                "icon": "$(collapse-all)"
             }
         ],
         "configuration": {
@@ -349,6 +355,11 @@
             "view/title": [
                 {
                     "command": "powerquery.sdk.test.refreshTests",
+                    "when": "view == 'workbench.view.testing'",
+                    "group": "navigation"
+                },
+                {
+                    "command": "powerquery.sdk.test.clearTests",
                     "when": "view == 'workbench.view.testing'",
                     "group": "navigation"
                 }

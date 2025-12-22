@@ -137,6 +137,7 @@
   "PQSdk.testAdapter.refreshingTestSettingsItem": "Refreshing test settings item: {label}",
   "PQSdk.testAdapter.discoveringTestsForItem": "Discovering tests for {label}...",
   "PQSdk.testAdapter.testSettingsItemRefreshed": "Test settings item refreshed successfully: {label}",
+  "PQSdk.testAdapter.testsCleared": "Cleared tests from {clearedCount} settings file(s)",
   "PQSdk.testAdapter.error.failedToRefreshTestSettingsItem": "Failed to refresh test settings item {label}: {errorMessage}",
   "PQSdk.testAdapter.error.failedToRefreshTestSettingsItemUserMessage": "Failed to refresh test settings item: {label}",
   "PQSdk.testAdapter.startingTestDiscovery": "Starting test discovery for all test settings items",

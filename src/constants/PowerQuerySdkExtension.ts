@@ -123,6 +123,7 @@ const TestAdapter = {
     OpenOutputFileCommand: "powerquery.sdk.test.openOutputFile" as const,
     RefreshAllTestsCommand: "powerquery.sdk.test.refreshTests" as const,
     RefreshSettingsItemTestsCommand: "powerquery.sdk.test.refreshSettingsItemTests" as const,
+    ClearAllTestsCommand: "powerquery.sdk.test.clearTests" as const,
     RevealTestInExplorerCommand: "vscode.revealTestInExplorer" as const,
 };
 

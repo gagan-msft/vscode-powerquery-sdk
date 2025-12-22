@@ -35,6 +35,33 @@ export function registerCommands(
     context.subscriptions.push(vscode.commands.registerCommand(ExtensionConstants.TestAdapter.OpenOutputFileCommand, showExpectedOutputFile));
     context.subscriptions.push(vscode.commands.registerCommand(ExtensionConstants.TestAdapter.RefreshAllTestsCommand, () => refreshAllTests(controller, outputChannel)));
     context.subscriptions.push(vscode.commands.registerCommand(ExtensionConstants.TestAdapter.RefreshSettingsItemTestsCommand, (testItem) => refreshSettingsItemWithProgress(testItem, controller, outputChannel)));
+    context.subscriptions.push(vscode.commands.registerCommand(ExtensionConstants.TestAdapter.ClearAllTestsCommand, () => clearAllTests(controller, outputChannel)));
+}
+
+/**
+ * Clears all children from top-level test settings items,
+ * collapsing them in the Test Explorer UI.
+ * Items can be re-expanded to trigger rediscovery.
+ */
+function clearAllTests(
+    controller: vscode.TestController,
+    outputChannel: PqSdkOutputChannel
+): void {
+    let clearedCount = 0;
+
+    controller.items.forEach(item => {
+        if (item.children.size > 0) {
+            item.children.replace([]);
+            item.canResolveChildren = true;
+            clearedCount++;
+        }
+    });
+
+    const message = resolveI18nTemplate(
+        "PQSdk.testAdapter.testsCleared",
+        { clearedCount: clearedCount.toString() }
+    );
+    outputChannel.appendDebugLine(message);
 }
 
 /**
