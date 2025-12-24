@@ -217,7 +217,7 @@
   "PQSdk.testAdapter.updater.multipleDiagnosticChannelsFoundMessage": "\n\nMultiple diagnostic channels found: ${channelList}. Showing comparison for first channel only",
   "PQSdk.testAdapter.updater.expectedDiagnosticsFileNotFound": "\n\nExpected diagnostics file not found for channel '${channel}'",
   "PQSdk.testAdapter.updater.missingExpectedDiagnosticFileLog": "Expected diagnostic file not found for channel '${channel}'",
-  "PQSdk.testAdapter.updater.diagnosticsFileMismatchForChannel": "Diagnostics file mismatch for channel '${channel}'",
+  "PQSdk.testAdapter.updater.diagnosticsFileMismatchForChannel": "Diagnostics file mismatch for channel '{channel}'",
   "PQSdk.testAdapter.updater.cannotShowTestDifferences": "\n\nCannot show test differences: ${missingFiles} file(s) missing",
   "PQSdk.testAdapter.updater.comparisonFilesNotFound": "Test comparison files not found",
   "PQSdk.testAdapter.updater.missingTestFiles": "Missing test result files - Expected: ${expectedFile}, Actual: ${actualFile}",

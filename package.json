@@ -355,9 +355,19 @@
                     "when": "testId =~ /^test:/"
                 },
                 {
+                    "command": "powerquery.sdk.test.openOutputFile",
+                    "group": "navigation@1",
+                    "when": "testId =~ /^test:/"
+                },
+                {
                     "command": "powerquery.sdk.test.refreshSettingsItemTests",
                     "when": "testId =~ /^(?!test:|folder:).*\\.testsettings\\.json/",
                     "group": "inline"
+                },
+                {
+                    "command": "powerquery.sdk.test.refreshSettingsItemTests",
+                    "when": "testId =~ /^(?!test:|folder:).*\\.testsettings\\.json/",
+                    "group": "navigation@1"
                 }
             ],
             "view/title": [
