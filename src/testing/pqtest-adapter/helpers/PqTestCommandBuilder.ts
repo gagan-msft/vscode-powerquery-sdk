@@ -14,14 +14,14 @@ export class PqTestCommandBuilder {
     constructor(
         private operation: string,
         private settingsFile?: vscode.Uri,
-        private extensions?: string | string[] | undefined
+        private extensions?: string | string[] | undefined,
     ) {}
 
     /**
      * Builds the complete command-line arguments array for PQTest.exe.
-     * 
+     *
      * Format: ["<operation>", "--extension", "<path>", "--settingsFile", "<path>", ...additionalArgs]
-     * 
+     *
      * @param additionalArgs - Optional additional arguments to append (e.g., --testFilter paths, --listOnly)
      * @returns Array of command-line arguments ready for process execution
      */
@@ -30,7 +30,7 @@ export class PqTestCommandBuilder {
 
         // Add extension arguments based on type
         if (this.extensions !== undefined) {
-            if (typeof this.extensions === 'string') {
+            if (typeof this.extensions === "string") {
                 // Single extension
                 args.push("--extension", this.extensions);
             } else if (Array.isArray(this.extensions)) {

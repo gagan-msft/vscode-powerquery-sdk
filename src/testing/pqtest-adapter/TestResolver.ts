@@ -14,7 +14,7 @@ import { TestDiscoveryService } from "./TestDiscoveryService";
 import { getTestPathFromSettings } from "./utils/testSettingsUtils";
 import { getPathType } from "../../utils/files";
 import { getNormalizedPath, splitPathPreservingCase } from "./utils/pathUtils";
-import { createTestItem, createCompositeId } from "./utils/testUtils";
+import { createCompositeId, createTestItem } from "./utils/testUtils";
 
 /**
  * Sorts tests to ensure proper hierarchy creation order.
@@ -41,7 +41,7 @@ function sortTestsForHierarchy(tests: any[]): any[] {
 /**
  * Resolves a test item (settings file) by discovering and creating children test items.
  * This function is called when a user expands a settings file in the Test Explorer or programmatically.
- * 
+ *
  * @param item - The test item representing a .testsettings.json file
  * @param controller - The VS Code test controller
  * @param outputChannel - Output channel for logging
@@ -51,7 +51,7 @@ export async function resolveTestItem(
     item: vscode.TestItem,
     controller: vscode.TestController,
     outputChannel: PqSdkOutputChannel,
-    token?: vscode.CancellationToken
+    token?: vscode.CancellationToken,
 ): Promise<void> {
     if (token?.isCancellationRequested) {
         return;
@@ -62,21 +62,26 @@ export async function resolveTestItem(
 
     // We're loading the children of a settings file TestItem
     const settingsFileUri = item.uri;
+
     if (!settingsFileUri) {
         item.error = extensionI18n["PQSdk.testResolver.uriNotSet"];
+
         return;
     }
 
     const workspaceFolder = vscode.workspace.getWorkspaceFolder(settingsFileUri);
+
     if (!workspaceFolder) {
         item.error = resolveI18nTemplate("PQSdk.testResolver.settingsFileNotInWorkspace", {
             settingsFilePath: settingsFileUri.fsPath,
         });
+
         return;
     }
 
     // Get the test path from settings file
     let testPath: string;
+
     try {
         testPath = await getTestPathFromSettings(settingsFileUri.fsPath);
     } catch (err: any) {
@@ -84,23 +89,28 @@ export async function resolveTestItem(
             settingsFilePath: settingsFileUri.fsPath,
             errorMessage: err.message,
         });
+
         return;
     }
 
     // Determine if testPath is a file or directory
     let pathType: "file" | "directory" | "not-found";
+
     try {
         pathType = await getPathType(testPath);
+
         if (pathType === "not-found") {
             item.error = resolveI18nTemplate("PQSdk.testResolver.testPathDoesNotExist", {
                 testPath,
             });
+
             return;
         }
     } catch (err: any) {
         item.error = resolveI18nTemplate("PQSdk.testResolver.failedToCheckTestPathType", {
             errorMessage: err.message,
         });
+
         return;
     }
 
@@ -115,7 +125,7 @@ export async function resolveTestItem(
             const normalizedTestFileName = path.basename(normalizedTestPath); // Use normalized for the ID
 
             // Create composite ID for test files: testId|settingsFilePath
-            const testId = "test:" + normalizedTestFileName;
+            const testId = `test:${normalizedTestFileName}`;
             const compositeId = createCompositeId(testId, settingsFileUri);
 
             createTestItem(
@@ -125,13 +135,13 @@ export async function resolveTestItem(
                 testFileUri,
                 false, // canResolveChildren
                 undefined, // sortText
-                item // parentItem
+                item, // parentItem
             );
 
             outputChannel.appendInfoLine(
                 resolveI18nTemplate("PQSdk.testResolver.addedSingleTestFile", {
                     testFileName,
-                })
+                }),
             );
         } else {
             // Handle test directory case - use TestDiscoveryService
@@ -142,15 +152,16 @@ export async function resolveTestItem(
             outputChannel.appendDebugLine(
                 resolveI18nTemplate("PQSdk.testResolver.pqtestResultStructure", {
                     resultJson: JSON.stringify(pqTestResult, null, 2),
-                })
+                }),
             );
 
             // Extract the Tests array from the result
             const tests = pqTestResult.Tests || [];
+
             outputChannel.appendDebugLine(
                 resolveI18nTemplate("PQSdk.testResolver.foundTestFiles", {
                     testCount: tests.length.toString(),
-                })
+                }),
             );
 
             if (tests.length === 0) {
@@ -168,13 +179,13 @@ export async function resolveTestItem(
                 if (token?.isCancellationRequested) {
                     return;
                 }
+
                 try {
                     // Get the relative path and split it preserving original case for labels
                     const relativePath = test.RelativePath || test.Test;
-                    const { normalizedParts, originalParts } = splitPathPreservingCase(
-                        relativePath,
-                        outputChannel
-                    );
+
+                    const { normalizedParts, originalParts } = splitPathPreservingCase(relativePath, outputChannel);
+
                     const normalizedPath = getNormalizedPath(relativePath);
 
                     let parentItem = item; // Start with the settings file item
@@ -191,19 +202,16 @@ export async function resolveTestItem(
                                 try {
                                     // Create folder test item - use original case for label
                                     const folderName = originalParts[i]; // Preserve original case for display
-                                    const folderId = "folder:" + folderPath;
+                                    const folderId = `folder:${folderPath}`;
 
                                     // Create composite ID for folders: folderId|settingsFilePath
-                                    const compositeFolderId = createCompositeId(
-                                        folderId,
-                                        settingsFileUri
-                                    );
+                                    const compositeFolderId = createCompositeId(folderId, settingsFileUri);
 
                                     // Calculate the absolute path for the folder
                                     const folderAbsolutePath = path.join(testPath, folderPath);
-                                    const normalizedFolderAbsolutePath = getNormalizedPath(
-                                        folderAbsolutePath
-                                    );
+
+                                    const normalizedFolderAbsolutePath = getNormalizedPath(folderAbsolutePath);
+
                                     const folderUri = vscode.Uri.file(normalizedFolderAbsolutePath);
 
                                     const folderItem = createTestItem(
@@ -213,7 +221,7 @@ export async function resolveTestItem(
                                         folderUri,
                                         false, // canResolveChildren
                                         `a_${folderName}`, // sortText
-                                        parentItem // parentItem
+                                        parentItem, // parentItem
                                     );
 
                                     // Store in map for hierarchy building
@@ -224,7 +232,7 @@ export async function resolveTestItem(
                                             folderName,
                                             folderId: folderItem.id,
                                             folderPath,
-                                        })
+                                        }),
                                     );
                                 } catch (folderError) {
                                     outputChannel.appendErrorLine(
@@ -234,7 +242,7 @@ export async function resolveTestItem(
                                                 folderError instanceof Error
                                                     ? folderError.message
                                                     : String(folderError),
-                                        })
+                                        }),
                                     );
                                     // Continue with parent item if folder creation fails
                                 }
@@ -242,7 +250,7 @@ export async function resolveTestItem(
                                 outputChannel.appendDebugLine(
                                     resolveI18nTemplate("PQSdk.testResolver.reusedExistingFolder", {
                                         folderPath,
-                                    })
+                                    }),
                                 );
                             }
 
@@ -252,11 +260,10 @@ export async function resolveTestItem(
                     }
 
                     // Create the test file item under its parent (folder or root)
-                    const testId = "test:" + normalizedPath;
+                    const testId = `test:${normalizedPath}`;
                     const label = test.Test; // Just the filename
-                    const uri = test.AbsolutePath
-                        ? vscode.Uri.file(getNormalizedPath(test.AbsolutePath))
-                        : undefined;
+
+                    const uri = test.AbsolutePath ? vscode.Uri.file(getNormalizedPath(test.AbsolutePath)) : undefined;
 
                     // Create composite ID for test files: originalTestId|settingsFilePath
                     const compositeTestId = uri ? createCompositeId(testId, settingsFileUri) : testId;
@@ -266,7 +273,7 @@ export async function resolveTestItem(
                             compositeTestId,
                             label,
                             uriPath: uri?.fsPath || "none",
-                        })
+                        }),
                     );
 
                     createTestItem(
@@ -276,14 +283,14 @@ export async function resolveTestItem(
                         uri,
                         undefined, // canResolveChildren (default)
                         `b_${label}`, // sortText to ensure folders appear before files
-                        parentItem // parentItem
+                        parentItem, // parentItem
                     );
                 } catch (error) {
                     outputChannel.appendErrorLine(
                         resolveI18nTemplate("PQSdk.testResolver.failedToCreateTestItem", {
                             testName: test.Test,
                             errorMessage: error instanceof Error ? error.message : String(error),
-                        })
+                        }),
                     );
                 }
             }
@@ -291,17 +298,18 @@ export async function resolveTestItem(
             outputChannel.appendInfoLine(
                 resolveI18nTemplate("PQSdk.testResolver.successfullyCreatedTestItems", {
                     testCount: tests.length.toString(),
-                })
+                }),
             );
         }
     } catch (err: any) {
         item.error = resolveI18nTemplate("PQSdk.testResolver.failedToDiscoverTests", {
             errorMessage: err.message,
         });
+
         outputChannel.appendErrorLine(
             resolveI18nTemplate("PQSdk.testResolver.testDiscoveryFailed", {
                 errorMessage: err.message,
-            })
+            }),
         );
     } finally {
         // No more children to resolve - mark this item as fully resolved

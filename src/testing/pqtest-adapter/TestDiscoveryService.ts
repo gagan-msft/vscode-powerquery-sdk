@@ -10,7 +10,7 @@ import * as vscode from "vscode";
 import { extensionI18n, resolveI18nTemplate } from "../../i18n/extension";
 import { resolvePqTestExecutablePath } from "../../utils/pqTestPath";
 import { PqSdkOutputChannel } from "../../features/PqSdkOutputChannel";
-import { getTestPathFromSettings, determineExtensionsForTests } from "./utils/testSettingsUtils";
+import { determineExtensionsForTests, getTestPathFromSettings } from "./utils/testSettingsUtils";
 import { getPathType } from "../../utils/files";
 import { PqTestDiscoveryRunner } from "./helpers/PqTestDiscoveryRunner";
 
@@ -23,16 +23,13 @@ export class TestDiscoveryService {
 
     /**
      * Discovers tests for a given settings file by calling PQTest.exe with --listOnly flag.
-     * 
+     *
      * @param settingsFileUri - URI to the .testsettings.json file
      * @param token - Optional cancellation token
      * @returns Parsed JSON result from PQTest.exe containing discovered tests
      * @throws Error if discovery fails
      */
-    async discoverTests(
-        settingsFileUri: vscode.Uri,
-        token?: vscode.CancellationToken
-    ): Promise<any> {
+    async discoverTests(settingsFileUri: vscode.Uri, token?: vscode.CancellationToken): Promise<any> {
         if (token?.isCancellationRequested) {
             throw new Error(extensionI18n["PQSdk.testDiscoveryService.testDiscoveryCancelled"]);
         }
@@ -42,6 +39,7 @@ export class TestDiscoveryService {
 
         // Get the test path from settings file
         let testPath: string;
+
         try {
             testPath = await getTestPathFromSettings(settingsFileUri.fsPath);
         } catch (err: any) {
@@ -49,18 +47,22 @@ export class TestDiscoveryService {
                 settingsFilePath: settingsFileUri.fsPath,
                 errorMessage: err.message,
             });
+
             this.outputChannel?.appendLine(error);
             throw new Error(error);
         }
 
         // Determine if testPath is a file or directory
         let pathType: "file" | "directory" | "not-found";
+
         try {
             pathType = await getPathType(testPath);
+
             if (pathType === "not-found") {
                 const error = resolveI18nTemplate("PQSdk.testDiscoveryService.testPathDoesNotExist", {
                     testPath,
                 });
+
                 this.outputChannel?.appendLine(error);
                 throw new Error(error);
             }
@@ -68,6 +70,7 @@ export class TestDiscoveryService {
             const error = resolveI18nTemplate("PQSdk.testDiscoveryService.failedToCheckTestPathType", {
                 errorMessage: err.message,
             });
+
             this.outputChannel?.appendLine(error);
             throw new Error(error);
         }
@@ -76,28 +79,25 @@ export class TestDiscoveryService {
             resolveI18nTemplate("PQSdk.testDiscoveryService.startingTestDiscoveryForPath", {
                 pathType,
                 testPath,
-            })
+            }),
         );
 
         this.outputChannel?.appendDebugLine(
             resolveI18nTemplate("PQSdk.testDiscoveryService.usingSettingsFile", {
                 settingsFilePath: settingsFileUri.fsPath,
-            })
+            }),
         );
 
         // Get PQTest executable path
         const pqTestPath = resolvePqTestExecutablePath();
 
         // Execute discovery using PqTestDiscoveryRunner
-        const discoveryRunner = new PqTestDiscoveryRunner(
-            pqTestPath,
-            settingsFileUri,
-            extensions,
-            this.outputChannel
-        );
+        const discoveryRunner = new PqTestDiscoveryRunner(pqTestPath, settingsFileUri, extensions, this.outputChannel);
 
         try {
-            this.outputChannel?.appendDebugLine(extensionI18n["PQSdk.testDiscoveryService.executingPqTestWithListOnly"]);
+            this.outputChannel?.appendDebugLine(
+                extensionI18n["PQSdk.testDiscoveryService.executingPqTestWithListOnly"],
+            );
 
             const result = await discoveryRunner.runDiscovery();
 
@@ -106,11 +106,13 @@ export class TestDiscoveryService {
             }
 
             this.outputChannel?.appendInfoLine(extensionI18n["PQSdk.testDiscoveryService.successfullyDiscoveredTests"]);
+
             return result;
         } catch (err: any) {
             const error = resolveI18nTemplate("PQSdk.testDiscoveryService.failedToDiscoverTests", {
                 errorMessage: err.message,
             });
+
             this.outputChannel?.appendLine(error);
             throw new Error(error);
         }

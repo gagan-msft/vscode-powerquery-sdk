@@ -84,7 +84,7 @@ export class PqTestResultParser {
      */
     async *parseStream(
         resultsStream: NodeJS.ReadableStream,
-        token: vscode.CancellationToken
+        token: vscode.CancellationToken,
     ): AsyncGenerator<PqTestResultEvent> {
         this.outputChannel.appendLine(extensionI18n["PQSdk.testAdapter.parser.startingToParse"]);
 
@@ -98,6 +98,7 @@ export class PqTestResultParser {
             if (token.isCancellationRequested) {
                 this.outputChannel.appendLine(extensionI18n["PQSdk.testAdapter.parser.cancelled"]);
                 yield { type: PqTestResultEventType.Cancelled };
+
                 return;
             }
 
@@ -111,10 +112,12 @@ export class PqTestResultParser {
 
             // Parse line format: "action:jsonData"
             const colonIndex = line.indexOf(":");
+
             if (colonIndex === -1) {
                 const errorMsg = resolveI18nTemplate("PQSdk.testAdapter.parser.unexpectedLineFormat", {
                     line,
                 });
+
                 this.outputChannel.appendErrorLine(errorMsg);
                 throw new Error(errorMsg);
             }
@@ -126,6 +129,7 @@ export class PqTestResultParser {
                 // Parse based on action type
                 if (action === PqTestResultEventType.RunStart) {
                     const event = JSON.parse(detailString) as RunStartEvent;
+
                     yield {
                         type: PqTestResultEventType.RunStart,
                         tests: event.tests,
@@ -133,6 +137,7 @@ export class PqTestResultParser {
                     };
                 } else if (action === PqTestResultEventType.TestStart) {
                     const event = JSON.parse(detailString) as TestStartEvent;
+
                     yield {
                         type: PqTestResultEventType.TestStart,
                         filePath: event.filePath,
@@ -140,6 +145,7 @@ export class PqTestResultParser {
                     };
                 } else if (action === PqTestResultEventType.TestEnd) {
                     const event = JSON.parse(detailString) as TestEndEvent;
+
                     const testResult: TestResult = {
                         filePath: getNormalizedPath(event.filePath),
                         status: event.status,
@@ -151,6 +157,7 @@ export class PqTestResultParser {
                         expectedDiagnosticsFilePaths: event.expectedDiagnosticsFilePaths,
                         error: event.error,
                     };
+
                     yield {
                         type: PqTestResultEventType.TestEnd,
                         result: testResult,
@@ -158,23 +165,27 @@ export class PqTestResultParser {
                     };
                 } else if (action === PqTestResultEventType.RunEnd) {
                     const event = JSON.parse(detailString) as RunEndEvent;
+
                     this.outputChannel.appendLine(
                         resolveI18nTemplate("PQSdk.testAdapter.parser.runCompleted", {
                             passed: event.passed.toString(),
                             failed: event.failed.toString(),
-                        })
+                        }),
                     );
+
                     yield {
                         type: PqTestResultEventType.RunEnd,
                         passed: event.passed,
                         failed: event.failed,
                         originalLine: line,
                     };
+
                     return; // End of stream
                 } else {
                     const errorMsg = resolveI18nTemplate("PQSdk.testAdapter.parser.unexpectedAction", {
                         action,
                     });
+
                     this.outputChannel.appendErrorLine(errorMsg);
                     throw new Error(errorMsg);
                 }
@@ -184,6 +195,7 @@ export class PqTestResultParser {
                     detailString,
                     error: e instanceof Error ? e.message : String(e),
                 });
+
                 this.outputChannel.appendErrorLine(errorMsg);
                 throw new Error(errorMsg);
             }

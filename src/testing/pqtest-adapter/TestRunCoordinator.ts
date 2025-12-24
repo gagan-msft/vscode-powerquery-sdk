@@ -45,7 +45,7 @@ export class TestRunCoordinator {
         private readonly pqTestPath: string,
         private readonly testController: vscode.TestController,
         private readonly outputChannel: PqSdkOutputChannel,
-        private readonly cancellationToken: vscode.CancellationToken
+        private readonly cancellationToken: vscode.CancellationToken,
     ) {}
 
     /**
@@ -76,8 +76,10 @@ export class TestRunCoordinator {
         // Count unexpanded/undiscovered test settings items to determine if we should use batch optimization
         let unexpandedCount = 0;
         let totalCount = 0;
-        this.testController.items.forEach((settingsItem) => {
+
+        this.testController.items.forEach(settingsItem => {
             totalCount++;
+
             if (settingsItem.children.size === 0) {
                 unexpandedCount++;
             }
@@ -91,27 +93,34 @@ export class TestRunCoordinator {
                 resolveI18nTemplate("PQSdk.testAdapter.coordinator.usingBatchOptimization", {
                     unexpandedCount: unexpandedCount.toString(),
                     totalCount: totalCount.toString(),
-                })
+                }),
             );
+
             await refreshAllTests(this.testController, this.outputChannel);
 
             // Small delay to allow UI and test state to stabilize after batch discovery
-            await new Promise((resolve) => setTimeout(resolve, DELAY_AFTER_DISCOVERY_MS));
+            await new Promise(resolve => setTimeout(resolve, DELAY_AFTER_DISCOVERY_MS));
 
             // Now run all tests (already discovered)
             const promises: Promise<void>[] = [];
-            this.testController.items.forEach((settingsItem) => {
+
+            this.testController.items.forEach(settingsItem => {
                 if (this.cancellationToken.isCancellationRequested) return;
+
                 promises.push(this.runTestSet(settingsItem));
             });
+
             await Promise.all(promises);
         } else {
             // Use individual discovery for unexpanded items
             const promises: Promise<void>[] = [];
-            this.testController.items.forEach((settingsItem) => {
+
+            this.testController.items.forEach(settingsItem => {
                 if (this.cancellationToken.isCancellationRequested) return;
+
                 promises.push(this.runTestSetWithAutoDiscovery(settingsItem));
             });
+
             await Promise.all(promises);
         }
     }
@@ -126,12 +135,13 @@ export class TestRunCoordinator {
             this.outputChannel.appendDebugLine(
                 resolveI18nTemplate("PQSdk.testAdapter.coordinator.autoDiscoveringTests", {
                     label: settingsItem.label,
-                })
+                }),
             );
+
             await refreshSettingsItem(settingsItem, this.testController, this.outputChannel);
 
             // Small delay to allow UI and test state to stabilize after discovery
-            await new Promise((resolve) => setTimeout(resolve, DELAY_AFTER_DISCOVERY_MS));
+            await new Promise(resolve => setTimeout(resolve, DELAY_AFTER_DISCOVERY_MS));
         }
 
         // Now run the tests
@@ -148,19 +158,21 @@ export class TestRunCoordinator {
 
         // Step 1: Filter out redundant child items when parent settings file is also selected
         const filteredItems = this.filterRedundantTestItems(this.request.include);
+
         this.outputChannel.appendDebugLine(
             resolveI18nTemplate("PQSdk.testAdapter.coordinator.filteredTestItems", {
                 originalCount: this.request.include.length.toString(),
                 filteredCount: filteredItems.length.toString(),
-            })
+            }),
         );
 
         // Step 2: Group remaining items by their settings file
         const testGroups = this.groupTestsBySettingsFile(filteredItems);
+
         this.outputChannel.appendDebugLine(
             resolveI18nTemplate("PQSdk.testAdapter.coordinator.groupedTestItems", {
                 groupCount: testGroups.length.toString(),
-            })
+            }),
         );
 
         // Step 3: Execute each group with appropriate test filters
@@ -176,10 +188,12 @@ export class TestRunCoordinator {
                     this.outputChannel.appendDebugLine(
                         resolveI18nTemplate("PQSdk.testAdapter.coordinator.autoDiscoveringTests", {
                             label: group.settingsItem.label,
-                        })
+                        }),
                     );
+
                     await refreshSettingsItem(group.settingsItem, this.testController, this.outputChannel);
                 }
+
                 // Run all tests (no filters)
                 promises.push(this.runTestSet(group.settingsItem));
             } else {
@@ -203,12 +217,13 @@ export class TestRunCoordinator {
             settingsItem.uri,
             this.testRun,
             this.outputChannel,
-            this.cancellationToken
+            this.cancellationToken,
         );
 
         // Get all leaf test items under this settings file and add them to the executor
         const leafItems = getLeafNodes(settingsItem);
-        leafItems.forEach((leafItem) => {
+
+        leafItems.forEach(leafItem => {
             executor.addTestItem(leafItem);
         });
 
@@ -233,8 +248,9 @@ export class TestRunCoordinator {
             this.outputChannel.appendInfoLine(
                 resolveI18nTemplate("PQSdk.testAdapter.coordinator.noValidTestFiltersGenerated", {
                     settingsFilePath: settingsItem.uri.fsPath,
-                })
+                }),
             );
+
             return;
         }
 
@@ -244,13 +260,14 @@ export class TestRunCoordinator {
             settingsItem.uri,
             this.testRun,
             this.outputChannel,
-            this.cancellationToken
+            this.cancellationToken,
         );
 
         // Add only the leaf test items from the child items to the executor
-        group.childItems.forEach((childItem) => {
+        group.childItems.forEach(childItem => {
             const leafItems = getLeafNodes(childItem);
-            leafItems.forEach((leafItem) => {
+
+            leafItems.forEach(leafItem => {
                 executor.addTestItem(leafItem);
             });
         });
@@ -282,9 +299,11 @@ export class TestRunCoordinator {
             } else {
                 // This is a child item (file/folder under settings)
                 const settingsUri = compositeInfo.settingsFileUri; // Already normalized from parseCompositeId
+
                 if (!childItems.has(settingsUri)) {
                     childItems.set(settingsUri, []);
                 }
+
                 childItems.get(settingsUri)!.push(item);
             }
         }
@@ -301,6 +320,7 @@ export class TestRunCoordinator {
             } else {
                 // Only include child items if their parent settings file is NOT selected
                 const settingsUri = compositeInfo.settingsFileUri;
+
                 if (!settingsFiles.has(settingsUri)) {
                     filteredItems.push(item);
                 }
@@ -326,6 +346,7 @@ export class TestRunCoordinator {
                 // This is a settings file - validate it's a .testsettings.json file
                 if (item.uri && item.uri.fsPath.endsWith(ExtensionConstants.TestAdapter.TestSettingsFileEnding)) {
                     const settingsUri = getNormalizedUriString(item.uri);
+
                     if (!groups.has(settingsUri)) {
                         groups.set(settingsUri, {
                             settingsItem: item,
@@ -335,16 +356,18 @@ export class TestRunCoordinator {
                 } else {
                     // Show error for invalid items
                     const itemPath = item.uri?.fsPath || "unknown";
+
                     vscode.window.showErrorMessage(
                         resolveI18nTemplate("PQSdk.testAdapter.coordinator.invalidTestItemSelected", {
                             itemPath,
-                        })
+                        }),
                     );
+
                     this.outputChannel.appendLine(
                         resolveI18nTemplate("PQSdk.testAdapter.coordinator.skippingInvalidTestItem", {
                             itemId: item.id,
                             itemPath,
-                        })
+                        }),
                     );
                 }
             } else {
@@ -354,7 +377,8 @@ export class TestRunCoordinator {
                 if (!groups.has(settingsUri)) {
                     // Find the settings item
                     let settingsItem: vscode.TestItem | undefined;
-                    this.testController.items.forEach((topLevelItem) => {
+
+                    this.testController.items.forEach(topLevelItem => {
                         if (topLevelItem.uri && getNormalizedUriString(topLevelItem.uri) === settingsUri) {
                             settingsItem = topLevelItem;
                         }
@@ -390,8 +414,9 @@ export class TestRunCoordinator {
                 this.outputChannel.appendLine(
                     resolveI18nTemplate("PQSdk.testAdapter.coordinator.skippingTestItemWithoutUri", {
                         itemId: childItem.id,
-                    })
+                    }),
                 );
+
                 continue;
             }
 
@@ -408,16 +433,18 @@ export class TestRunCoordinator {
                 filterArgs.push("--testFilter", relativePath);
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : String(error);
+
                 this.outputChannel.appendLine(
                     resolveI18nTemplate("PQSdk.testAdapter.coordinator.errorCalculatingRelativePath", {
                         itemId: childItem.id,
                         errorMessage,
-                    })
+                    }),
                 );
+
                 this.outputChannel.appendLine(
                     resolveI18nTemplate("PQSdk.testAdapter.coordinator.skippingTestItemWithPath", {
                         filePath: childItem.uri.fsPath,
-                    })
+                    }),
                 );
                 // Continue with other test items
             }

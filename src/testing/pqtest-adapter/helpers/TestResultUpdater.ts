@@ -28,7 +28,7 @@ enum ComparisonContext {
 export class TestResultUpdater {
     constructor(
         private testRun: vscode.TestRun,
-        private outputChannel: PqSdkOutputChannel
+        private outputChannel: PqSdkOutputChannel,
     ) {}
 
     /**
@@ -60,7 +60,7 @@ export class TestResultUpdater {
             throw new Error(
                 resolveI18nTemplate("PQSdk.testAdapter.updater.expectedTestItemToHaveUri", {
                     testId: testItem.id,
-                })
+                }),
             );
         }
 
@@ -70,7 +70,7 @@ export class TestResultUpdater {
             this.testRun.passed(testItem, durationMs);
         } else if (result.status === TestStatus.Failed) {
             const failedMessage = new vscode.TestMessage(
-                result.reason || extensionI18n["PQSdk.testAdapter.updater.testFailed"]
+                result.reason || extensionI18n["PQSdk.testAdapter.updater.testFailed"],
             );
 
             // Handle different failure reasons
@@ -82,8 +82,8 @@ export class TestResultUpdater {
 
             this.testRun.failed(testItem, failedMessage, durationMs);
         } else if (result.status === TestStatus.Error) {
-            const errorMessage =
-                result.error?.message || extensionI18n["PQSdk.testAdapter.updater.unknownError"];
+            const errorMessage = result.error?.message || extensionI18n["PQSdk.testAdapter.updater.unknownError"];
+
             const testMessage = new vscode.TestMessage(errorMessage);
 
             // Optionally include error details in the message
@@ -100,17 +100,14 @@ export class TestResultUpdater {
     /**
      * Handles output file mismatch by comparing expected and actual test result files.
      */
-    private async handleOutputFileMismatch(
-        failedMessage: vscode.TestMessage,
-        result: TestResult
-    ): Promise<void> {
+    private async handleOutputFileMismatch(failedMessage: vscode.TestMessage, result: TestResult): Promise<void> {
         // If we have expected and actual output files in the output, add them to the TestMessage.
         if (result.expectedTestResultFilePath && result.actualTestResultFilePath) {
             await this.compareFiles(
                 failedMessage,
                 result.expectedTestResultFilePath,
                 result.actualTestResultFilePath,
-                ComparisonContext.TestResult
+                ComparisonContext.TestResult,
             );
         }
     }
@@ -118,19 +115,19 @@ export class TestResultUpdater {
     /**
      * Handles diagnostics file mismatch by comparing expected and actual diagnostic files.
      */
-    private async handleDiagnosticsFileMismatch(
-        failedMessage: vscode.TestMessage,
-        result: TestResult
-    ): Promise<void> {
+    private async handleDiagnosticsFileMismatch(failedMessage: vscode.TestMessage, result: TestResult): Promise<void> {
         // Check if we have the required diagnostic file paths
         if (!result.actualDiagnosticsFilePaths || !result.expectedDiagnosticsFilePaths) {
             failedMessage.message += extensionI18n["PQSdk.testAdapter.updater.diagnosticsFilePathsNotProvided"];
+
             return;
         }
 
         const channels = Object.keys(result.actualDiagnosticsFilePaths);
+
         if (channels.length === 0) {
             failedMessage.message += extensionI18n["PQSdk.testAdapter.updater.noDiagnosticChannelsFound"];
+
             return;
         }
 
@@ -139,15 +136,17 @@ export class TestResultUpdater {
         // Log a message if multiple channels exist
         if (channels.length > 1) {
             const channelList = channels.join(", ");
+
             this.outputChannel.appendLine(
                 resolveI18nTemplate("PQSdk.testAdapter.updater.multipleDiagnosticChannelsFoundLog", {
                     channelList,
                     firstChannel,
-                })
+                }),
             );
+
             failedMessage.message += resolveI18nTemplate(
                 "PQSdk.testAdapter.updater.multipleDiagnosticChannelsFoundMessage",
-                { channelList }
+                { channelList },
             );
         }
 
@@ -156,24 +155,25 @@ export class TestResultUpdater {
 
         // Check if the same channel exists in expected
         const expectedDiagPath = result.expectedDiagnosticsFilePaths[firstChannel];
+
         if (!expectedDiagPath) {
-            failedMessage.message += resolveI18nTemplate(
-                "PQSdk.testAdapter.updater.expectedDiagnosticsFileNotFound",
-                { channel: firstChannel }
-            );
+            failedMessage.message += resolveI18nTemplate("PQSdk.testAdapter.updater.expectedDiagnosticsFileNotFound", {
+                channel: firstChannel,
+            });
+
             this.outputChannel.appendLine(
                 resolveI18nTemplate("PQSdk.testAdapter.updater.missingExpectedDiagnosticFileLog", {
                     channel: firstChannel,
-                })
+                }),
             );
+
             return;
         }
 
         // Update the message to indicate which channel we're comparing
-        failedMessage.message = resolveI18nTemplate(
-            "PQSdk.testAdapter.updater.diagnosticsFileMismatchForChannel",
-            { channel: firstChannel }
-        );
+        failedMessage.message = resolveI18nTemplate("PQSdk.testAdapter.updater.diagnosticsFileMismatchForChannel", {
+            channel: firstChannel,
+        });
 
         await this.compareFiles(failedMessage, expectedDiagPath, actualDiagPath, ComparisonContext.Diagnostic);
     }
@@ -189,7 +189,7 @@ export class TestResultUpdater {
         failedMessage: vscode.TestMessage,
         expectedFilePath: string,
         actualFilePath: string,
-        context: ComparisonContext
+        context: ComparisonContext,
     ): Promise<void> {
         try {
             // Check if both files exist before attempting to read them
@@ -205,33 +205,27 @@ export class TestResultUpdater {
                 failedMessage.expectedOutput = this.formatOutputForDiff(expectedRaw, expectedFilePath);
                 failedMessage.actualOutput = this.formatOutputForDiff(actualRaw, actualFilePath);
 
-                // Log if formatting was applied 
+                // Log if formatting was applied
                 if (expectedRaw !== failedMessage.expectedOutput || actualRaw !== failedMessage.actualOutput) {
                     this.outputChannel.appendDebugLine(
                         resolveI18nTemplate("PQSdk.testAdapter.updater.appliedFormattingForDiff", {
-                            context: context,
-                        })
+                            context,
+                        }),
                     );
                 }
             } else {
                 // Determine which files are missing for a detailed error message
-                const missingFiles = [
-                    !expectedFileExists ? "expected" : "",
-                    !actualFileExists ? "actual" : "",
-                ]
+                const missingFiles = [!expectedFileExists ? "expected" : "", !actualFileExists ? "actual" : ""]
                     .filter(Boolean)
                     .join(" and ");
 
                 // Add a note to the test message indicating the missing files
-                failedMessage.message += resolveI18nTemplate(
-                    "PQSdk.testAdapter.updater.cannotShowTestDifferences",
-                    { missingFiles }
-                );
+                failedMessage.message += resolveI18nTemplate("PQSdk.testAdapter.updater.cannotShowTestDifferences", {
+                    missingFiles,
+                });
 
                 // Also show a notification to the user
-                void vscode.window.showErrorMessage(
-                    extensionI18n["PQSdk.testAdapter.updater.comparisonFilesNotFound"]
-                );
+                void vscode.window.showErrorMessage(extensionI18n["PQSdk.testAdapter.updater.comparisonFilesNotFound"]);
 
                 // Log appropriate message based on context
                 if (context === ComparisonContext.TestResult) {
@@ -239,14 +233,14 @@ export class TestResultUpdater {
                         resolveI18nTemplate("PQSdk.testAdapter.updater.missingTestFiles", {
                             expectedFile: expectedFilePath,
                             actualFile: actualFilePath,
-                        })
+                        }),
                     );
                 } else if (context === ComparisonContext.Diagnostic) {
                     this.outputChannel.appendLine(
                         resolveI18nTemplate("PQSdk.testAdapter.updater.missingDiagnosticFilesLog", {
                             expectedFile: expectedFilePath,
                             actualFile: actualFilePath,
-                        })
+                        }),
                     );
                 }
             }
@@ -259,20 +253,19 @@ export class TestResultUpdater {
                 this.outputChannel.appendLine(
                     resolveI18nTemplate("PQSdk.testAdapter.updater.errorReadingTestResultFiles", {
                         error: errorMessage,
-                    })
+                    }),
                 );
             } else if (context === ComparisonContext.Diagnostic) {
                 this.outputChannel.appendLine(
                     resolveI18nTemplate("PQSdk.testAdapter.updater.errorReadingDiagnosticFiles", {
                         error: errorMessage,
-                    })
+                    }),
                 );
             }
 
-            failedMessage.message += resolveI18nTemplate(
-                "PQSdk.testAdapter.updater.errorReadingComparisonFiles",
-                { error: errorMessage }
-            );
+            failedMessage.message += resolveI18nTemplate("PQSdk.testAdapter.updater.errorReadingComparisonFiles", {
+                error: errorMessage,
+            });
         }
     }
 
@@ -280,18 +273,20 @@ export class TestResultUpdater {
      * Formats output content for consistent diff view display.
      * Attempts to format as JSON first, then falls back to basic normalization.
      * If any error occurs during formatting, returns the original content unchanged.
-     * 
+     *
      * @param content The raw file content
      * @param filePath The file path (used for logging context)
      * @returns Formatted content suitable for diff comparison, or original content if formatting fails
      */
     private formatOutputForDiff(content: string, filePath: string): string {
         try {
-            //Try to parse and format as JSON
+            // Try to parse and format as JSON
             try {
                 const trimmed = content.trim();
+
                 if (trimmed.length > 0) {
                     const parsed = JSON.parse(trimmed);
+
                     // Successfully parsed as JSON - return with consistent formatting
                     return JSON.stringify(parsed, null, 2);
                 }
@@ -300,7 +295,7 @@ export class TestResultUpdater {
                 this.outputChannel.appendDebugLine(
                     resolveI18nTemplate("PQSdk.testAdapter.updater.jsonParseFailedFallingBackToNormalization", {
                         filePath,
-                    })
+                    }),
                 );
             }
 
@@ -311,18 +306,20 @@ export class TestResultUpdater {
             return content
                 .replace(/\r\n/g, "\n") // Normalize CRLF to LF
                 .split("\n")
-                .map((line) => line.trimEnd()) // Remove trailing whitespace per line
+                .map(line => line.trimEnd()) // Remove trailing whitespace per line
                 .join("\n")
                 .trim(); // Remove leading/trailing newlines
         } catch (formattingError) {
             // If any unexpected error occurs during formatting, return original content
             const errorMessage = formattingError instanceof Error ? formattingError.message : String(formattingError);
+
             this.outputChannel.appendLine(
                 resolveI18nTemplate("PQSdk.testAdapter.updater.formattingFailedUsingOriginal", {
                     filePath,
                     error: errorMessage,
-                })
+                }),
             );
+
             return content;
         }
     }

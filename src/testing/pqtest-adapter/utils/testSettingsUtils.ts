@@ -15,18 +15,18 @@ import { ExtensionConstants } from "../../../constants/PowerQuerySdkExtension";
 import { PqSdkOutputChannel } from "../../../features/PqSdkOutputChannel";
 import { extensionI18n, resolveI18nTemplate } from "../../../i18n/extension";
 import {
-    FileSystemOperations,
-    WorkspaceOperations,
     defaultFileSystemOperations,
     defaultWorkspaceOperations,
+    FileSystemOperations,
     getPathType,
+    WorkspaceOperations,
 } from "../../../utils/files";
-import { resolveSubstitutedValues, resolvePathRelativeToWorkspace } from "../../../utils/vscodes";
+import { resolvePathRelativeToWorkspace, resolveSubstitutedValues } from "../../../utils/vscodes";
 
 /**
  * Retrieves and resolves settings file URIs from configuration.
  * Handles both individual files and directories containing settings files.
- * 
+ *
  * @param outputChannel - Optional output channel for logging warnings
  * @returns Array of URIs to test settings files (.testsettings.json)
  */
@@ -47,20 +47,19 @@ export async function getTestSettingsFileUris(outputChannel?: PqSdkOutputChannel
                     settingsFiles,
                     testSettingsFilePattern,
                 );
+
                 const files: vscode.Uri[] = await vscode.workspace.findFiles(pattern);
                 result.push(...files);
+            } else if (settingsFiles.endsWith(testSettingsFileEnding)) {
+                result.push(vscode.Uri.file(settingsFiles));
             } else {
-                if (settingsFiles.endsWith(testSettingsFileEnding)) {
-                    result.push(vscode.Uri.file(settingsFiles));
-                } else {
-                    void vscode.window.showErrorMessage(
-                        resolveI18nTemplate("PQSdk.testAdapter.error.incorrectFileExtension", {
-                            settingsFile: settingsFiles,
-                            configPath: `${baseConfigPath}.${settingsFilesConfigKey}`,
-                            expectedExtension: testSettingsFileEnding,
-                        }),
-                    );
-                }
+                void vscode.window.showErrorMessage(
+                    resolveI18nTemplate("PQSdk.testAdapter.error.incorrectFileExtension", {
+                        settingsFile: settingsFiles,
+                        configPath: `${baseConfigPath}.${settingsFilesConfigKey}`,
+                        expectedExtension: testSettingsFileEnding,
+                    }),
+                );
             }
             // Ignore paths that don't exist
         } catch (e) {
@@ -85,6 +84,7 @@ export async function getTestSettingsFileUris(outputChannel?: PqSdkOutputChannel
                         settingsFile,
                         testSettingsFilePattern,
                     );
+
                     const files: vscode.Uri[] = await vscode.workspace.findFiles(pattern);
                     result.push(...files);
                 } else if (settingsFile.endsWith(testSettingsFileEnding)) {
@@ -304,47 +304,51 @@ export async function determineExtensionsForTests(
 
     if (testExtensionPaths !== undefined) {
         // Handle string case
-        if (typeof testExtensionPaths === 'string') {
+        if (typeof testExtensionPaths === "string") {
             const trimmed = testExtensionPaths.trim();
+
             if (trimmed.length > 0) {
-                const message = resolveI18nTemplate(
-                    "PQSdk.testAdapter.extensions.usingTestExtensionPathsConfig",
-                    { extensionCount: "1" }
-                );
+                const message = resolveI18nTemplate("PQSdk.testAdapter.extensions.usingTestExtensionPathsConfig", {
+                    extensionCount: "1",
+                });
+
                 outputChannel?.appendInfoLine(message);
+
                 return trimmed;
             }
+
             // Empty string - log and fall through to Priority 3
-            outputChannel?.appendLine(
-                "test.extensionPaths is configured but empty, falling back to defaultExtension"
-            );
+            outputChannel?.appendLine("test.extensionPaths is configured but empty, falling back to defaultExtension");
         }
         // Handle array case
         else if (Array.isArray(testExtensionPaths)) {
             // Filter out empty/whitespace-only strings
             const validPaths = testExtensionPaths
-                .filter(p => typeof p === 'string' && p.trim().length > 0)
+                .filter(p => typeof p === "string" && p.trim().length > 0)
                 .map(p => p.trim());
-            
+
             if (validPaths.length > 0) {
                 // Log if we filtered any items
                 if (validPaths.length < testExtensionPaths.length) {
                     const filtered = testExtensionPaths.length - validPaths.length;
+
                     outputChannel?.appendInfoLine(
-                        `Filtered out ${filtered} empty extension path(s) from test.extensionPaths configuration`
+                        `Filtered out ${filtered} empty extension path(s) from test.extensionPaths configuration`,
                     );
                 }
-                
-                const message = resolveI18nTemplate(
-                    "PQSdk.testAdapter.extensions.usingTestExtensionPathsConfig",
-                    { extensionCount: validPaths.length.toString() }
-                );
+
+                const message = resolveI18nTemplate("PQSdk.testAdapter.extensions.usingTestExtensionPathsConfig", {
+                    extensionCount: validPaths.length.toString(),
+                });
+
                 outputChannel?.appendInfoLine(message);
+
                 return validPaths;
             }
+
             // All empty - log and fall through to Priority 3
             outputChannel?.appendInfoLine(
-                "powerquery.sdk.test.extensionPaths array is configured but all paths are empty, falling back to defaultExtension"
+                "powerquery.sdk.test.extensionPaths array is configured but all paths are empty, falling back to defaultExtension",
             );
         }
     }
@@ -357,32 +361,32 @@ export async function determineExtensionsForTests(
     if (defaultExtension) {
         // Substitute variables and resolve path relative to workspace folder
         const resolved = resolvePathRelativeToWorkspace(resolveSubstitutedValues(defaultExtension));
-        
+
         if (resolved) {
-            const message = resolveI18nTemplate(
-                "PQSdk.testAdapter.extensions.fallingBackToDefaultExtension",
-                { extensionPath: resolved }
-            );
+            const message = resolveI18nTemplate("PQSdk.testAdapter.extensions.fallingBackToDefaultExtension", {
+                extensionPath: resolved,
+            });
+
             outputChannel?.appendInfoLine(message);
+
             return resolved;
         }
     }
-    
-    
+
     // ERROR: No extensions configured anywhere
     throw new Error(extensionI18n["PQSdk.testAdapter.extensions.noExtensionsConfigured"]);
 }
 
 /**
  * Builds command-line arguments for intermediate test results persistence.
- * 
+ *
  * Always enables persistence and sets the intermediate results folder.
- * 
+ *
  * Folder path precedence:
  * 1. testsettings.json "IntermediateTestResultsFolder" (if defined)
  * 2. VS Code config "powerquery.sdk.test.defaultIntermediateResultsFolder" (if defined)
  * 3. Hard-coded default: "../TestResults"
- * 
+ *
  * @param settingsFilePath - Path to .testsettings.json file
  * @param outputChannel - Optional output channel for debug logging
  * @param fs - File system operations
@@ -391,56 +395,59 @@ export async function determineExtensionsForTests(
 export async function buildIntermediateResultsArgs(
     settingsFilePath: string,
     outputChannel?: PqSdkOutputChannel,
-    fs: FileSystemOperations = defaultFileSystemOperations
+    fs: FileSystemOperations = defaultFileSystemOperations,
 ): Promise<string[]> {
     const args: string[] = [];
-    
+
     // Always enable persistence
     args.push("--persistIntermediateTestResults");
-    
+
     // Read testsettings.json
     const config = await readIntermediateResultsConfig(settingsFilePath, outputChannel, fs);
-    
+
     // Determine folder path with precedence
     let folderPath: string;
+
     if (config.intermediateTestResultsFolder !== undefined) {
         // Priority 1: Use value from testsettings.json
         folderPath = config.intermediateTestResultsFolder;
+
         outputChannel?.appendDebugLine(
             resolveI18nTemplate("PQSdk.testAdapter.intermediateResults.usingFolderFromSettings", {
                 settingsFilePath,
-                folderPath
-            })
+                folderPath,
+            }),
         );
     } else {
         // Priority 2: Check VS Code config
         const configValue = ExtensionConfigurations.DefaultIntermediateResultsFolder;
+
         if (configValue && configValue.trim().length > 0) {
             folderPath = configValue.trim();
+
             outputChannel?.appendDebugLine(
                 resolveI18nTemplate("PQSdk.testAdapter.intermediateResults.usingFolderFromConfig", {
-                    folderPath
-                })
+                    folderPath,
+                }),
             );
         } else {
             // Priority 3: Hard-coded constant
             folderPath = ExtensionConstants.TestAdapter.DefaultIntermediateResultsFolder;
-            outputChannel?.appendDebugLine(
-                extensionI18n["PQSdk.testAdapter.intermediateResults.usingDefaultFolder"]
-            );
+
+            outputChannel?.appendDebugLine(extensionI18n["PQSdk.testAdapter.intermediateResults.usingDefaultFolder"]);
         }
     }
-    
+
     args.push("--intermediateTestResultsFolder", folderPath);
-    
+
     // Log final configuration
     outputChannel?.appendInfoLine(
         resolveI18nTemplate("PQSdk.testAdapter.intermediateResults.finalConfig", {
             persist: "true",
-            folder: folderPath
-        })
+            folder: folderPath,
+        }),
     );
-    
+
     return args;
 }
 
@@ -451,7 +458,7 @@ export async function buildIntermediateResultsArgs(
 async function readIntermediateResultsConfig(
     settingsFilePath: string,
     outputChannel?: PqSdkOutputChannel,
-    fs: FileSystemOperations = defaultFileSystemOperations
+    fs: FileSystemOperations = defaultFileSystemOperations,
 ): Promise<{
     intermediateTestResultsFolder?: string;
 }> {
@@ -459,28 +466,25 @@ async function readIntermediateResultsConfig(
         const data = await fs.readFile(vscode.Uri.file(settingsFilePath));
         const textData = new TextDecoder().decode(data);
         const json = JSON.parse(textData);
-        
+
         return {
-            intermediateTestResultsFolder: 
-                typeof json.IntermediateTestResultsFolder === 'string' 
-                    ? json.IntermediateTestResultsFolder 
-                    : undefined
+            intermediateTestResultsFolder:
+                typeof json.IntermediateTestResultsFolder === "string" ? json.IntermediateTestResultsFolder : undefined,
         };
     } catch (error) {
         // Log debug message about fallback
         const errorMessage = error instanceof Error ? error.message : String(error);
+
         outputChannel?.appendDebugLine(
             resolveI18nTemplate("PQSdk.testAdapter.intermediateResults.failedToReadSettings", {
                 settingsFilePath,
-                errorMessage
-            })
+                errorMessage,
+            }),
         );
-        outputChannel?.appendDebugLine(
-            extensionI18n["PQSdk.testAdapter.intermediateResults.fallingBackToDefaults"]
-        );
-        
+
+        outputChannel?.appendDebugLine(extensionI18n["PQSdk.testAdapter.intermediateResults.fallingBackToDefaults"]);
+
         // Return empty config - caller will use default
         return {};
     }
 }
-

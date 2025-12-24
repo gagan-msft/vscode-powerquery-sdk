@@ -34,7 +34,7 @@ export function initializeCleanupTimer(outputChannel: PqSdkOutputChannel): void 
 
 /**
  * Check if cleanup should run based on throttle interval
- * If enough time has passed, trigger cleanup 
+ * If enough time has passed, trigger cleanup
  */
 export function maybeCleanupIntermediateResults(): void {
     const now = Date.now();

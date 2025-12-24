@@ -140,7 +140,7 @@ export function splitPath(filePath: string): string[] {
  * @returns The joined path
  */
 export function joinPath(...parts: string[]): string {
-    return parts.filter((part: string): boolean => !!part && part.length > 0).join("/");
+    return parts.filter((part: string): boolean => Boolean(part) && part.length > 0).join("/");
 }
 
 /**

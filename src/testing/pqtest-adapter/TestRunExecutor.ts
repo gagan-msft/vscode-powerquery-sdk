@@ -17,9 +17,9 @@ import { SpawnedProcessStreaming } from "../../common/SpawnedProcessStreaming";
 import { PqSdkOutputChannel } from "../../features/PqSdkOutputChannel";
 import { extensionI18n, resolveI18nTemplate } from "../../i18n/extension";
 import { getNormalizedPath } from "./utils/pathUtils";
-import { determineExtensionsForTests, buildIntermediateResultsArgs } from "./utils/testSettingsUtils";
+import { buildIntermediateResultsArgs, determineExtensionsForTests } from "./utils/testSettingsUtils";
 import { PqTestCommandBuilder } from "./helpers/PqTestCommandBuilder";
-import { PqTestResultParser, PqTestResultEventType } from "./helpers/PqTestResultParser";
+import { PqTestResultEventType, PqTestResultParser } from "./helpers/PqTestResultParser";
 import { TestResultUpdater } from "./helpers/TestResultUpdater";
 
 /**
@@ -41,12 +41,12 @@ export class TestRunExecutor {
         private readonly settingsFile: vscode.Uri,
         private readonly testRun: vscode.TestRun,
         private readonly outputChannel: PqSdkOutputChannel,
-        private readonly cancellationToken: vscode.CancellationToken
+        private readonly cancellationToken: vscode.CancellationToken,
     ) {}
 
     /**
      * Adds a test item to be executed in this run.
-     * 
+     *
      * @param testItem - The test item to add
      */
     addTestItem(testItem: vscode.TestItem): void {
@@ -55,7 +55,7 @@ export class TestRunExecutor {
 
     /**
      * Executes the test run with optional additional command-line arguments.
-     * 
+     *
      * @param additionalArgs - Optional additional arguments for PQTest.exe (e.g., test filters)
      */
     async execute(additionalArgs?: string[]): Promise<void> {
@@ -68,19 +68,21 @@ export class TestRunExecutor {
         this.outputChannel.appendDebugLine(
             resolveI18nTemplate("PQSdk.testAdapter.executor.startingTestExecution", {
                 testCount: this.testItems.length.toString(),
-            })
+            }),
         );
+
         this.outputChannel.appendDebugLine(
             resolveI18nTemplate("PQSdk.testAdapter.executor.settingsFile", {
                 settingsFilePath: this.settingsFile.fsPath,
-            })
+            }),
         );
 
         const workingDirectory = path.dirname(this.settingsFile.fsPath);
+
         this.outputChannel.appendDebugLine(
             resolveI18nTemplate("PQSdk.testAdapter.executor.workingDirectory", {
                 workingDirectory,
-            })
+            }),
         );
 
         try {
@@ -90,12 +92,13 @@ export class TestRunExecutor {
             // Step 2: Build intermediate results arguments
             const intermediateResultsArgs = await buildIntermediateResultsArgs(
                 this.settingsFile.fsPath,
-                this.outputChannel
+                this.outputChannel,
             );
 
             // Step 3: Build the lookup map for test items
             const runItemsMap = new Map<string, vscode.TestItem>();
-            this.testItems.forEach((item) => {
+
+            this.testItems.forEach(item => {
                 if (item.uri) {
                     const normalizedPath = getNormalizedPath(item.uri.fsPath);
                     runItemsMap.set(normalizedPath, item);
@@ -103,17 +106,10 @@ export class TestRunExecutor {
             });
 
             // Step 4: Build the command using PqTestCommandBuilder
-            const commandBuilder = new PqTestCommandBuilder(
-                "run-compare",
-                this.settingsFile,
-                extensions
-            );
-            
-            const allAdditionalArgs = [
-                ...intermediateResultsArgs,
-                ...(additionalArgs || [])
-            ];
-            
+            const commandBuilder = new PqTestCommandBuilder("run-compare", this.settingsFile, extensions);
+
+            const allAdditionalArgs = [...intermediateResultsArgs, ...(additionalArgs || [])];
+
             const args = commandBuilder.buildArgs(allAdditionalArgs);
 
             // Step 5: Execute the process using SpawnedProcessStreaming
@@ -121,7 +117,7 @@ export class TestRunExecutor {
                 resolveI18nTemplate("PQSdk.testAdapter.executor.executingCommand", {
                     exePath: this.pqTestPath,
                     args: args.join(" "),
-                })
+                }),
             );
 
             const processRunner = new SpawnedProcessStreaming(this.pqTestPath, args, {
@@ -143,7 +139,10 @@ export class TestRunExecutor {
 
                 // Handle cancellation
                 if (event.type === PqTestResultEventType.Cancelled) {
-                    this.outputChannel.appendInfoLine(extensionI18n["PQSdk.testAdapter.executor.testRunCancelledByUser"]);
+                    this.outputChannel.appendInfoLine(
+                        extensionI18n["PQSdk.testAdapter.executor.testRunCancelledByUser"],
+                    );
+
                     this.state = ExecutionState.Cancelled;
                     break;
                 }
@@ -156,33 +155,35 @@ export class TestRunExecutor {
                     testFiles.forEach((filePath: string) => {
                         const normalizedPath = getNormalizedPath(filePath);
                         const test = runItemsMap.get(normalizedPath);
+
                         if (test) {
                             resultUpdater.enqueueTest(test);
                         } else {
                             // Log the unexpected test and continue with other tests
                             unexpectedTestCount++;
+
                             this.outputChannel.appendInfoLine(
                                 resolveI18nTemplate("PQSdk.testAdapter.executor.unexpectedTest", {
                                     filePath,
-                                })
+                                }),
                             );
+
                             this.outputChannel.appendDebugLine(`Settings file: ${this.settingsFile.fsPath}`);
                         }
                     });
 
                     // Show warning to user if there were unexpected tests
                     if (unexpectedTestCount > 0) {
-                        const message = resolveI18nTemplate(
-                            "PQSdk.testAdapter.executor.unexpectedTestCount",
-                            {
-                                count: unexpectedTestCount.toString(),
-                            }
-                        );
+                        const message = resolveI18nTemplate("PQSdk.testAdapter.executor.unexpectedTestCount", {
+                            count: unexpectedTestCount.toString(),
+                        });
+
                         vscode.window.showWarningMessage(message);
                     }
                 } else if (event.type === PqTestResultEventType.TestStart) {
                     const testKey: string = getNormalizedPath(event.filePath);
                     currentTest = runItemsMap.get(testKey);
+
                     if (currentTest) {
                         resultUpdater.markTestAsStarted(currentTest);
                     }
@@ -202,8 +203,9 @@ export class TestRunExecutor {
                         resolveI18nTemplate("PQSdk.testAdapter.parser.runCompleted", {
                             passed: event.passed.toString(),
                             failed: event.failed.toString(),
-                        })
+                        }),
                     );
+
                     this.state = ExecutionState.Completed;
                     break;
                 }
@@ -214,14 +216,15 @@ export class TestRunExecutor {
             }
 
             this.outputChannel.appendInfoLine(
-                extensionI18n["PQSdk.testAdapter.executor.testExecutionCompletedSuccessfully"]
+                extensionI18n["PQSdk.testAdapter.executor.testExecutionCompletedSuccessfully"],
             );
         } catch (error) {
             this.outputChannel.appendErrorLine(extensionI18n["PQSdk.testAdapter.executor.errorDuringTestExecution"]);
+
             this.outputChannel.appendErrorLine(
                 resolveI18nTemplate("PQSdk.testAdapter.executor.errorDetails", {
                     errorMessage: error instanceof Error ? error.message : String(error),
-                })
+                }),
             );
 
             // Handle exceptions and show user-friendly error messages
@@ -229,25 +232,27 @@ export class TestRunExecutor {
                 vscode.window.showErrorMessage(
                     resolveI18nTemplate("PQSdk.testAdapter.executor.errorRunningTests", {
                         errorMessage: error.message,
-                    })
+                    }),
                 );
 
                 // Mark all test items as errored
                 const errorMsg = error.message;
-                this.testItems.forEach((item) => {
+
+                this.testItems.forEach(item => {
                     const errorMessage = new vscode.TestMessage(errorMsg);
                     this.testRun.errored(item, errorMessage);
                 });
             } else {
                 vscode.window.showErrorMessage(
-                    extensionI18n["PQSdk.testAdapter.executor.unknownErrorOccurredWhileRunningTests"]
+                    extensionI18n["PQSdk.testAdapter.executor.unknownErrorOccurredWhileRunningTests"],
                 );
 
                 // Mark all test items as errored with generic message
-                this.testItems.forEach((item) => {
+                this.testItems.forEach(item => {
                     const errorMessage = new vscode.TestMessage(
-                        extensionI18n["PQSdk.testAdapter.executor.unknownErrorOccurred"]
+                        extensionI18n["PQSdk.testAdapter.executor.unknownErrorOccurred"],
                     );
+
                     this.testRun.errored(item, errorMessage);
                 });
             }
