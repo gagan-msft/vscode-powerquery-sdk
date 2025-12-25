@@ -11,7 +11,7 @@ import { extensionI18n, resolveI18nTemplate } from "../../i18n/extension";
 import { resolvePqTestExecutablePath } from "../../utils/pqTestPath";
 import { PqSdkOutputChannel } from "../../features/PqSdkOutputChannel";
 import { determineExtensionsForTests, getTestPathFromSettings } from "./utils/testSettingsUtils";
-import { getPathType } from "../../utils/files";
+import { getPathType } from "./utils/vscodeFs";
 import { PqTestDiscoveryRunner } from "./helpers/PqTestDiscoveryRunner";
 
 /**

@@ -15,7 +15,7 @@ import * as path from "path";
 
 import { ExtensionConstants } from "../../constants/PowerQuerySdkExtension";
 import { ExtensionConfigurations } from "../../constants/PowerQuerySdkConfiguration";
-import { getPathType } from "../../utils/files";
+import { getPathType } from "./utils/vscodeFs";
 // TODO: Re-enable when TestResolver is migrated
 // import { resolveTestItem } from "./TestResolver";
 import { getTestSettingsFileUris } from "./utils/testSettingsUtils";

@@ -15,7 +15,7 @@ import * as vscode from "vscode";
 import { ExtensionConstants } from "../../constants/PowerQuerySdkExtension";
 import { extensionI18n, resolveI18nTemplate } from "../../i18n/extension";
 import { PqSdkOutputChannel } from "../../features/PqSdkOutputChannel";
-import { fileExists } from "../../utils/files";
+import { fileExists } from "./utils/vscodeFs";
 import { getOutputFilePathForTestItem } from "./utils/pathUtils";
 import { resolveTestItem } from "./TestResolver";
 import { TestWatcherManager } from "./TestWatcherManager";

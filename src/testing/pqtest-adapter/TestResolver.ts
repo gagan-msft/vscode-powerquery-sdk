@@ -12,7 +12,7 @@ import { extensionI18n, resolveI18nTemplate } from "../../i18n/extension";
 import { PqSdkOutputChannel } from "../../features/PqSdkOutputChannel";
 import { TestDiscoveryService } from "./TestDiscoveryService";
 import { getTestPathFromSettings } from "./utils/testSettingsUtils";
-import { getPathType } from "../../utils/files";
+import { getPathType } from "./utils/vscodeFs";
 import { getNormalizedPath, splitPathPreservingCase } from "./utils/pathUtils";
 import { createCompositeId, createTestItem } from "./utils/testUtils";
 

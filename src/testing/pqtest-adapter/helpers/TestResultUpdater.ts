@@ -10,7 +10,7 @@ import * as vscode from "vscode";
 
 import { TestResult, TestStatus } from "./PqTestResultParser";
 import { PqSdkOutputChannel } from "../../../features/PqSdkOutputChannel";
-import { fileExists } from "../../../utils/files";
+import { fileExists } from "../utils/vscodeFs";
 import { extensionI18n, resolveI18nTemplate } from "../../../i18n/extension";
 
 /**

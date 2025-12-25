@@ -20,7 +20,7 @@ import {
     FileSystemOperations,
     getPathType,
     WorkspaceOperations,
-} from "../../../utils/files";
+} from "./vscodeFs";
 import { resolvePathRelativeToWorkspace, resolveSubstitutedValues } from "../../../utils/vscodes";
 
 /**
