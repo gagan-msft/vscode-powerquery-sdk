@@ -13,7 +13,12 @@ import * as vscode from "vscode";
 import { ExtensionConfigurations } from "../../../constants/PowerQuerySdkConfiguration";
 import { ExtensionConstants } from "../../../constants/PowerQuerySdkExtension";
 import { PqSdkOutputChannel } from "../../../features/PqSdkOutputChannel";
-import { extensionI18n, resolveI18nTemplate } from "../../../i18n/extension";
+import { extensionI18n, ExtensionI18nKeys, resolveI18nTemplate } from "../../../i18n/extension";
+import {
+    QueryFilePathErrorCode,
+    QueryFilePathValidationResult,
+    validateQueryFilePathField,
+} from "../core/queryFilePathValidation";
 import {
     defaultFileSystemOperations,
     defaultWorkspaceOperations,
@@ -118,18 +123,30 @@ export async function getTestSettingsFileUris(outputChannel?: PqSdkOutputChannel
 }
 
 /**
+ * Maps validation error codes to i18n message keys.
+ */
+const queryFilePathErrorCodeToI18nKey: Record<QueryFilePathErrorCode, ExtensionI18nKeys> = {
+    missing: "PQSdk.testAdapter.error.queryFilePathMissing",
+    "invalid-type": "PQSdk.testAdapter.error.queryFilePathInvalidType",
+    empty: "PQSdk.testAdapter.error.queryFilePathEmpty",
+    "whitespace-only": "PQSdk.testAdapter.error.queryFilePathWhitespaceOnly",
+};
+
+/**
  * Reads the test path from a settings file and validates that it is either a directory or a .query.pq file.
  * The path is resolved relative to the test settings file if it's not an absolute path.
  *
  * @param settingsFilePath Absolute path to the test settings file
  * @param fs File system operations (defaults to VS Code's workspace.fs)
- * @param workspace Workspace operations (defaults to VS Code's workspace)
+ * @param _workspace Workspace operations (defaults to VS Code's workspace)
+ * @param outputChannel Optional output channel for logging errors
  * @returns Promise that resolves to the resolved and validated test path
  */
 export async function getTestPathFromSettings(
     settingsFilePath: string,
     fs: FileSystemOperations = defaultFileSystemOperations,
     _workspace: WorkspaceOperations = defaultWorkspaceOperations,
+    outputChannel?: PqSdkOutputChannel,
 ): Promise<string> {
     let data: Uint8Array;
 
@@ -140,6 +157,8 @@ export async function getTestPathFromSettings(
             settingsFilePath,
         });
 
+        outputChannel?.appendErrorLine(message);
+        void vscode.window.showErrorMessage(message);
         throw new Error(message);
     }
 
@@ -156,14 +175,24 @@ export async function getTestPathFromSettings(
             settingsFilePath,
         });
 
-        throw new Error(`${baseMessage}: ${errorMessage}`);
+        const fullMessage: string = `${baseMessage}: ${errorMessage}`;
+        outputChannel?.appendErrorLine(fullMessage);
+        void vscode.window.showErrorMessage(fullMessage);
+        throw new Error(fullMessage);
     }
 
-    if (typeof json.QueryFilePath !== "string" || !json.QueryFilePath) {
-        const message: string = resolveI18nTemplate("PQSdk.testAdapter.error.queryFilePathNotFound", {
+    // Validate QueryFilePath field using pure validation function
+    const validationResult: QueryFilePathValidationResult = validateQueryFilePathField(json.QueryFilePath);
+
+    if (!validationResult.isValid) {
+        const i18nKey: ExtensionI18nKeys = queryFilePathErrorCodeToI18nKey[validationResult.errorCode!];
+
+        const message: string = resolveI18nTemplate(i18nKey, {
             settingsFilePath,
         });
 
+        outputChannel?.appendErrorLine(message);
+        void vscode.window.showErrorMessage(message);
         throw new Error(message);
     }
 
@@ -188,30 +217,47 @@ export async function getTestPathFromSettings(
             if (resolvedQueryFilePath.endsWith(ExtensionConstants.TestAdapter.TestFileEnding)) {
                 return resolvedQueryFilePath;
             } else {
-                throw new Error(
-                    resolveI18nTemplate("PQSdk.testAdapter.error.queryFilePathMustBeDirectoryOrPqFile", {
+                const invalidFileMessage: string = resolveI18nTemplate(
+                    "PQSdk.testAdapter.error.queryFilePathMustBeDirectoryOrPqFile",
+                    {
                         queryFilePath: queryFilePathFromSettings,
                         settingsFilePath,
-                    }),
+                    },
                 );
+
+                outputChannel?.appendErrorLine(invalidFileMessage);
+                void vscode.window.showErrorMessage(invalidFileMessage);
+                throw new Error(invalidFileMessage);
             }
 
-        case "not-found":
-            throw new Error(
-                resolveI18nTemplate("PQSdk.testAdapter.error.queryFilePathDoesNotExist", {
+        case "not-found": {
+            const notFoundMessage: string = resolveI18nTemplate(
+                "PQSdk.testAdapter.error.queryFilePathDoesNotExist",
+                {
                     queryFilePath: queryFilePathFromSettings,
                     settingsFilePath,
                     resolvedPath: resolvedQueryFilePath,
-                }),
+                },
             );
 
-        default:
+            outputChannel?.appendErrorLine(notFoundMessage);
+            void vscode.window.showErrorMessage(notFoundMessage);
+            throw new Error(notFoundMessage);
+        }
+
+        default: {
             // This case should not be reachable
-            throw new Error(
-                resolveI18nTemplate("PQSdk.testAdapter.error.unexpectedErrorCheckingPath", {
+            const unexpectedMessage: string = resolveI18nTemplate(
+                "PQSdk.testAdapter.error.unexpectedErrorCheckingPath",
+                {
                     resolvedPath: resolvedQueryFilePath,
-                }),
+                },
             );
+
+            outputChannel?.appendErrorLine(unexpectedMessage);
+            void vscode.window.showErrorMessage(unexpectedMessage);
+            throw new Error(unexpectedMessage);
+        }
     }
 }
 

@@ -8,10 +8,19 @@
 /**
  * Test utilities for the Power Query SDK Test extension.
  * Centralized functions for creating and manipulating VS Code TestItems.
+ * 
+ * Pure composite ID functions are implemented in ../core/compositeId.ts and re-exported here.
+ * This file contains VS Code-specific wrappers that use vscode.TestItem and other VS Code types.
  */
 
 import * as vscode from "vscode";
 import { getNormalizedUriString } from "./pathUtils";
+
+// Re-export pure function from core module
+export { parseCompositeId } from "../core/compositeId";
+
+// Import for internal use
+import { createCompositeId as createCompositeIdCore } from "../core/compositeId";
 
 /**
  * Creates a VS Code TestItem with the given parameters and optional configuration.
@@ -92,25 +101,6 @@ export function createCompositeId(originalTestId: string, settingsFileUri: vscod
 
     const normalizedSettingsUri: string = getNormalizedUriString(settingsFileUri);
 
-    return `${originalTestId}|${normalizedSettingsUri}`;
-}
-
-/**
- * Parses a composite ID to extract the original test ID and normalized settings file URI.
- * The composite ID format is: "originalTestId|settingsFileUri"
- *
- * @param compositeId - The composite ID string to parse
- * @returns Object with originalTestId and normalized settingsFileUri, or null if parsing fails
- */
-export function parseCompositeId(compositeId: string): { originalTestId: string; settingsFileUri: string } | null {
-    const parts: string[] = compositeId.split("|");
-
-    if (parts.length === 2) {
-        return {
-            originalTestId: parts[0],
-            settingsFileUri: parts[1], // This should already be normalized when created with createCompositeId
-        };
-    }
-
-    return null;
+    // Delegate to core function
+    return createCompositeIdCore(originalTestId, normalizedSettingsUri);
 }
