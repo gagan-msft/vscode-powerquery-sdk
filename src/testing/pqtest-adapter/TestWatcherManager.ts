@@ -52,6 +52,15 @@ export class TestWatcherManager implements vscode.Disposable {
      * re-runs top level discovery, and sets up new watchers.
      */
     private async reset(): Promise<void> {
+        // If no workspace folders are open, clear everything and exit early
+        if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
+            this.controller.items.replace([]);
+            this.disposeWatchers();
+            this.outputChannel.appendDebugLine(extensionI18n["PQSdk.testAdapter.noWorkspaceFoldersOpen"]);
+
+            return;
+        }
+
         this.outputChannel.appendInfoLine(extensionI18n["PQSdk.testAdapter.performingFullReset"]);
 
         // Dispose all existing watchers
@@ -359,12 +368,16 @@ export class TestWatcherManager implements vscode.Disposable {
         const workspaceFolder = vscode.workspace.getWorkspaceFolder(settingsFileUri);
 
         if (!workspaceFolder) {
-            const errorMessage = resolveI18nTemplate("PQSdk.testAdapter.error.settingsFileNotInWorkspace", {
-                settingsFilePath: settingsFileUri.fsPath,
-            });
+            // Only show error if workspaces exist but this file isn't in any of them
+            // Silent skip when no workspaces are open at all
+            if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+                const errorMessage = resolveI18nTemplate("PQSdk.testAdapter.error.settingsFileNotInWorkspace", {
+                    settingsFilePath: settingsFileUri.fsPath,
+                });
 
-            this.outputChannel.appendDebugLine(errorMessage);
-            vscode.window.showErrorMessage(errorMessage);
+                this.outputChannel.appendDebugLine(errorMessage);
+                vscode.window.showErrorMessage(errorMessage);
+            }
 
             return undefined;
         }

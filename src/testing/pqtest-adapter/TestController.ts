@@ -100,6 +100,11 @@ export function registerTestController(
     // Initial discovery is handled by TestWatcherManager
     controller.resolveHandler = async item => {
         if (item) {
+            // Skip if no workspace folders are open 
+            if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
+                return;
+            }
+
             // User expanded a test settings file, so discover its children
             await refreshSettingsItemWithProgress(item, controller, outputChannel);
         }
