@@ -147,6 +147,27 @@ If a test fails due to a diagnostics mismatch, you can view the diff between the
 - **Discovery Failures:** If discovery fails for a specific settings items (e.g. tests don't appear after expanding), use the **Refresh Tests** button inline with that item to retry.
 
 
+### Intermediate Test Results & Cleanup
+
+The Test Explorer automatically persists intermediate test results (.pqout files) during test runs to improve performance and debugging. You will see two related arguments in the executed PQTest command:
+
+- `--persistIntermediateTestResults`: Always enabled to force persistence of test results.
+- `--intermediateTestResultsFolder <path>`: Specifies where these artifacts are stored.
+
+**Storage Location**
+
+By default, these results are stored in a `../TestResults` folder relative to your `.testsettings.json` file. You can customize this location:
+1.  Set `powerquery.sdk.test.defaultIntermediateResultsFolder` in your VS Code settings. OR
+2.  Add the `"IntermediateTestResultsFolder": "<path>"` key to your `.testsettings.json` file. Applies to only that settings file's run.
+
+**Automatic Cleanup**
+
+To save disk space, the extension automatically deletes old test results from the default `../TestResults` folder.
+- **Frequency**: Runs in the background when executing tests (throttled to run at most once every 4 hours).
+- **Configuration**: Use `powerquery.sdk.test.cleanupIntermediateResultsAfterHours` to control the file retention period (default: 24 hours). Set to `0` to disable.
+- **Note**: Automatic cleanup **only** applies to the default `../TestResults` location. If you use custom paths, you are responsible for cleaning up those folders.
+
+
 ### Logging & Troubleshooting
 
 - Extension logs are available in the `Power Query SDK` output channel. For unexpected behaviors, look for the `PQTest run-compare` entry in the logs to verify the command arguments and execution. This helps identify whether the issue is with the extension (e.g. incorrect paths) or PQTest itself.
