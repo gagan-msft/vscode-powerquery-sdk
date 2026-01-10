@@ -19,9 +19,6 @@ Tests are displayed in the VS Code Test Explorer as “test items”: objects th
 *Test Explorer with some sample discovered tests and hierarchical test items.*
 <img src="media/test-explorer-screenshot.png" alt="Test Explorer showing discovered tests" width="600" height="400"/>
 
-*Test Results pane showing detailed output and a side-by-side diff for some sample failed tests.*
-<img src="media/test-results-diff-screenshot.png" alt="Test Results with diff view" width="600" height="400"/>
-
 
 ## Quick Start
 
@@ -45,19 +42,34 @@ Tests are displayed in the VS Code Test Explorer as “test items”: objects th
 
 ### Configuration
 
-Set the following configurations in `.vscode/settings.json` file of your workspace (Open Command Palette → "Preferences: Open Workspace Settings (JSON)"):
+To enable the Test Explorer to find and run your tests, you need to configure specific test settings file(s) and your VS Code workspace settings.
 
-1. `powerquery.sdk.test.settingsFiles`: Path(s) to your `.testsettings.json` file(s) or a directory containing them. Accepts:
-   - A string path to a directory (all valid `.testsettings.json` files inside will be used)
-   - A string path to a single test settings file
-   - An array of string paths to individual test settings files/directory containing them
-2. `powerquery.sdk.test.ExtensionPaths`: Path(s) to your connector file(s) (`.mez` files). Accepts:
-   - A string path to a single connector file
-   - An array of string paths to multiple connector files
-   - Supports VS Code variable substitution (e.g., `${workspaceFolder}`)
-   - Relative paths are resolved relative to the workspace folder
-   - If not provided or empty, falls back to `powerquery.sdk.defaultExtension` (which only supports a single path)
-3. Set up connector credentials as described [here](https://dev.azure.com/powerbi/Power%20Query/_git/PowerQuerySdkTools?path=/Tools/PQTest/pqtest.md&_a=preview&anchor=set-credential).
+1. Open your settings in VS Code.
+    * **Workspace Settings** (for project-specific paths): Open the Command Palette (**Ctrl+Shift+P** or **Cmd+Shift+P**), type **Preferences: Open Workspace Settings (JSON)** and select it.
+    * **User Settings** (for global paths): Open the Command Palette, type **Preferences: Open User Settings (JSON)** and select it.
+
+2. Add the following configurations. Note that **relative paths are resolved relative to the workspace folder**.
+
+   * `powerquery.sdk.test.settingsFiles`: Path(s) to your `.testsettings.json` file(s) or a directory containing them. Accepts:
+     * A string path to a directory (all valid `.testsettings.json` files inside will be used)
+     * A string path to a single test settings file
+     * An array of string paths to individual test settings files/directory containing them
+   * `powerquery.sdk.test.ExtensionPaths`: Path(s) to your connector file(s) (`.mez` files). Accepts:
+     * A string path to a single connector file
+     * An array of string paths to multiple connector files
+     * Supports VS Code variable substitution (e.g., `${workspaceFolder}`)
+     * If not provided or empty, falls back to `powerquery.sdk.defaultExtension` (which only supports a single path)
+   * `powerquery.sdk.tools.location`: The absolute path to the PQTest installation folder (containing `PQTest.exe`). **Requires Microsoft.PowerQuery.SdkTools version 2.150.3 or later.** This setting can be defined in either **User** or **Workspace** settings.
+     * Example:
+       ```json
+       "powerquery.sdk.tools.location": "C:\\...\\Microsoft.PowerQuery.SdkTools.2.150.4\\tools",
+       "powerquery.sdk.tools.version": "2.150.4"
+       ```
+
+   > [!TIP]
+   > You can use variables like `${workspaceFolder}` to make paths relative to your project root. Relative paths in `settings.json` are resolved relative to the workspace root.
+
+3. Set up connector credentials as described [here](https://learn.microsoft.com/en-us/power-query/power-query-sdk-vs-code#set-credential).
 
 
 ### About `.testsettings.json` (Test Settings File)
@@ -72,38 +84,95 @@ You can create this file manually or by copying and modifying an existing PQTest
 During test execution, this file is passed to PQTest using the `--settingsFile` flag (e.g., `PQTest.exe run-compare --settingsFile <path-to-your-testsettings.json>`).
 
 
-### How to view expected output file (.pqout) for a test?
+### Refreshing Tests
 
-Click the "View Expected Test Output" button (clipboard icon) next to a test item (`.query.pq`) in the Test Explorer View. 
+If you add new tests, change the settings or test discovery fails for some reason, you can refresh the discovery:
+
+* **Refresh All Tests**: Click the **Refresh All Tests** button (circular arrow icon) at the top of the Test Explorer pane to rediscover tests for all settings files.
+
+   *Discovering tests for all settings files using the Refresh Tests button at the top of the Test Explorer.*
+
+   <img src="media/test-explorer-refresh-all.gif" alt="Discover all tests for all settings files from Test Explorer" />
+
+* **Refresh Tests referred by a Test Settings file**: Hover over a specific test settings file and click the **Refresh Tests** button (circular arrow icon) to rediscover tests for just that file.
+
+   *Rediscovering tests for a sample settings file using the "Refresh Tests" button in the Test Explorer.*
+
+   <img src="media/rediscover-tests.gif" alt="Rediscover tests for a settings file from Test Explorer" />
+
+
+### Clearing Tests
+
+You can clear all discovered tests and collapse all settings items by clicking the **Clear Tests** button (clear icon) at the top of the Test Explorer pane.
+
+*Clearing all tests using the Clear Tests button at the top of the Test Explorer.*
+
+<img src="media/test-explorer-clear-all.gif" alt="Clearing all tests from Test Explorer" />
+<img src="media/test-explorer-clear-tests.png" alt="Clear Tests button in Toolbar" />
+
+> **Note:** After clearing all tests, the expansion and collapse functionality for test settings items may be inconsistent. For reliable usage, use the **Refresh Tests** button to rediscover tests.
+
+
+### View Expected Output
+
+You can quickly view the expected output file (`.pqout`) for any test. To do this, either click the **View Expected Test Output** icon (clipboard) that appears when hovering over a test, or right-click the test item and select **View Expected Test Output** from the context menu. This action opens the corresponding `.pqout` file in the editor.
 
 *Viewing an expected test output (.pqout) file from VS Code Test Explorer.*
 
 <img src="media/view-expected-output-screenshot.png" alt="Test Explorer showing option to view expected output"/>
 
+### Diff View for Failures
 
-### How to trigger rediscovery of tests for a single settings file?
+If a test fails because the output didn't match the expected result, the Test Explorer provides a built-in diff view. Click on the failure in the Test Results pane to see a side-by-side comparison of the **Actual** vs. **Expected** output.
 
-Click the "Refresh Tests" button (Refresh icon) next to a settings item (`.testsettings.json`) in the Test Explorer View. 
+*Test Results pane showing detailed output and a side-by-side diff for some sample failed tests.*
+<img src="media/test-results-diff-screenshot.png" alt="Test Results with diff view" width="600" height="400"/>
 
-*Rediscovering tests for a sample settings file using the "Refresh Tests" button in the Test Explorer.*
 
-<img src="media/rediscover-tests.gif" alt="Rediscover tests for a settings file from Test Explorer" />
+### Query Folding Diagnostics
 
-### How to discover tests for all settings files at once?
+If your test configuration enables query folding validation (by specifying a `DiagnosticsPath`), the extension also compares the generated diagnostics against the expected baseline.
 
-Click the **Refresh Tests** button (Refresh icon) at the top of the Test Explorer panel. 
+If a test fails due to a diagnostics mismatch, you can view the diff between the **Actual** and **Expected** diagnostics files by clicking on the failure in the Test Results pane.
 
-*Discovering tests for all settings files using the Refresh Tests button at the top of the Test Explorer.*
+   *Diff view in Test Explorer showing actual vs expected diagnostics for a failed test.*
 
-<img src="media/test-explorer-refresh-all.gif" alt="Discover all tests for all settings files from Test Explorer" />
+   <img src="media/test-explorer-diagnostics-failure.png" alt="Diff view in Test Explorer showing actual vs expected diagnostics for a failed test" />
+
+
+### Known Issues
+
+- **Test Explorer Focus Grabbing:** During test discovery or refreshing all tests, the Test Explorer view may repeatedly grab focus, interrupting navigation to other views. [View Ticket](https://dev.azure.com/powerbi/Power%20Query/_workitems/edit/1943686)
+- **Failed Test Selection Sync:** Clicking a failed test in the Test Explorer does not always highlight the corresponding test in the Test Results pane, unlike passed tests. [View Ticket](https://dev.azure.com/powerbi/Power%20Query/_workitems/edit/1943690)
+- **Discovery Failures:** If discovery fails for a specific settings items (e.g. tests don't appear after expanding), use the **Refresh Tests** button inline with that item to retry.
+
 
 ### Logging & Troubleshooting
 
-- Extension logs are available in the `Power Query SDK` output channel.
+- Extension logs are available in the `Power Query SDK` output channel. For unexpected behaviors, look for the `PQTest run-compare` entry in the logs to verify the command arguments and execution. This helps identify whether the issue is with the extension (e.g. incorrect paths) or PQTest itself.
+
+   *Sample log output showing the PQTest execution command.*
+   <img src="media/output-channel-pqtest-command.png" alt="Output channel showing PQTest command execution" />
+
+   ```text
+   Executing: C:\...\PQTest.exe run-compare --extension <path_to_extension> --settingsFile <path_to_settings> ...
+   ```
+
+   **Debugging "Unknown Error Occurred":**
+
+   Currently, `PQTest run-compare` may suppress error details for certain failures, returning only "Unknown Error". To view detailed error messages:
+
+   1. Copy the executed command from the [output logs](#logging--troubleshooting) (as shown above).
+   2. Replace `run-compare` with `compare`.
+   3. Run the command in a terminal. **Note:** Navigate to the folder containing your `.testsettings.json` file first, as paths in the settings file are relative to its location.
+
+   <img src="media/unknown-error-workaround.png" alt="Running modified PQTest command in terminal to see error details" />
+   
+   *[Tracking Ticket](https://dev.azure.com/powerbi/Power%20Query/_workitems/edit/1943688)*
 
 - Common issues:
 
-   - **PQTest.exe not found:** Set `powerquery.test.pqtest` or `powerquery.sdk.tools.location`.
+   - **PQTest.exe not found:** Ensure the `powerquery.sdk.tools.location` setting points to the correct absolute path of the PQTest installation folder.
    - **Invalid QueryFilePath:** Ensure `QueryFilePath` in your settings file points to a directory or `.query.pq` file.
    - **No tests found:** Use the internal SDK feed and ensure `QueryFilePath` points to a valid directory.
-   - **Expanding a settings file does nothing:** Use the "Discover Tests" command (refresh icon inline with a settings item) to refresh tests.
+   - **Expanding a settings file does nothing:** Use the "Refresh Tests" command (refresh icon inline with a settings item) to refresh tests.
