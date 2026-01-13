@@ -1,7 +1,7 @@
 
-# Power Query SDK - Test Explorer Integration 
+# Power Query SDK - Test Explorer Integration
 
-The Power Query SDK for Visual Studio Code now includes integrated support for discovering and running Power Query connector tests directly within the VS Code Test Explorer UI.  
+The Power Query SDK for Visual Studio Code now includes integrated support for discovering and running Power Query connector tests directly within the VS Code Test Explorer UI.
 
 ### Overview
 
@@ -25,7 +25,6 @@ Tests are displayed in the VS Code Test Explorer as “test items”: objects th
 ### Prerequisites
 
 - Visual Studio Code version 1.100 or later.
-- Enable internal features, run `setx PQTest_MS_Internal_Testing true` in your command prompt and restart VS Code. For more details, see [Enable Microsoft Internal Settings](https://powerbi.visualstudio.com/Power%20Query/_git/DataConnectors?path=/Docs/PowerQuerySDKForVSCode.md&_a=preview&anchor=enable-microsoft-internal-settings).
 
 <a id="quick-start-steps"></a>
 ### Steps
@@ -188,7 +187,7 @@ To save disk space, the extension automatically deletes old test results from th
    3. Run the command in a terminal. **Note:** Navigate to the folder containing your `.testsettings.json` file first, as paths in the settings file are relative to its location.
 
    <img src="media/unknown-error-workaround.png" alt="Running modified PQTest command in terminal to see error details" />
-   
+
    *[Tracking Ticket](https://dev.azure.com/powerbi/Power%20Query/_workitems/edit/1943688)*
 
 - Common issues:
