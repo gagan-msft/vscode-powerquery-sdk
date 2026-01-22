@@ -275,9 +275,6 @@ export const ExtensionConfigurations = {
 
         return Boolean(result);
     },
-    get isTestAdapterEnabled(): boolean {
-        return process.env.PQTest_MS_Internal_Testing === "true";
-    },
     get testSettingsFiles(): string | string[] | undefined {
         const config: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(
             ExtensionConstants.ConfigNames.PowerQuerySdk.name,
