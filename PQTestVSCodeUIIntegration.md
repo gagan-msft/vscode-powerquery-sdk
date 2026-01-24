@@ -201,7 +201,7 @@ To save disk space, the extension automatically deletes old test results from th
 - Extension logs are available in the `Power Query SDK` output channel. For unexpected behaviors, look for the `PQTest run-compare` entry in the logs to verify the command arguments and execution. This helps identify whether the issue is with the extension (e.g. incorrect paths) or PQTest itself.
 
    *Sample log output showing the PQTest execution command.*
-   <img src="media/output-channel-pqtest-command.png" alt="Output channel showing PQTest command execution" />
+   <img src="media/output-channel-screenshot.png" alt="Output channel showing PQTest command execution" />
 
    ```text
    Executing: C:\...\PQTest.exe run-compare --extension <path_to_extension> --settingsFile <path_to_settings> ...
