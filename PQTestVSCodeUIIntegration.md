@@ -218,5 +218,5 @@ To save disk space, the extension automatically deletes old test results from th
 
    - **PQTest.exe not found:** Ensure the `powerquery.sdk.tools.location` setting points to the correct absolute path of the PQTest installation folder.
    - **Invalid QueryFilePath:** Ensure `QueryFilePath` in your settings file points to a directory or `.query.pq` file.
-   - **No tests found:** Use the internal SDK feed and ensure `QueryFilePath` points to a valid directory.
+   - **No tests found:** Ensure `QueryFilePath` points to a valid directory.
    - **Expanding a settings file does nothing:** Use the "Refresh Tests" command (refresh icon inline with a settings item) to refresh tests.
